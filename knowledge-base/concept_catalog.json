@@ -1,0 +1,354 @@
+{
+  "version": "1.0",
+  "description": "Maps every learnable concept to: KB article, scenario, Docker Compose state, and tier. Powers concept-first navigation — user picks a concept, app boots the right broken system.",
+  "concepts": {
+
+    "cache-aside": {
+      "title": "Cache-Aside Pattern",
+      "description": "App checks cache before DB. On miss, fetches from DB and writes to cache.",
+      "kb_file": "core-concepts/caching.html",
+      "kb_anchor": "#cache-aside",
+      "scenario": "url_shortener",
+      "state": "state0_baseline",
+      "tier": 1,
+      "concept_target": "cache-aside",
+      "tags": ["caching", "redis", "read-heavy"]
+    },
+
+    "thundering-herd": {
+      "title": "Thundering Herd / Cache Stampede",
+      "description": "Many requests hit DB simultaneously when a popular cache key expires.",
+      "kb_file": "core-concepts/caching.html",
+      "kb_anchor": "#thundering-herd",
+      "scenario": "url_shortener",
+      "state": "state2_thundering_herd",
+      "tier": 2,
+      "concept_target": "ttl-jitter",
+      "tags": ["caching", "redis", "ttl"]
+    },
+
+    "hot-key": {
+      "title": "Hot Key Problem",
+      "description": "One cache key receives disproportionate traffic, saturating a single Redis shard.",
+      "kb_file": "core-concepts/caching.html",
+      "kb_anchor": "#hot-keys",
+      "scenario": "url_shortener",
+      "state": "state3_hotkey",
+      "tier": 3,
+      "concept_target": "local-l1-cache",
+      "tags": ["caching", "redis", "hot-key"]
+    },
+
+    "connection-pool-exhaustion": {
+      "title": "Connection Pool Exhaustion",
+      "description": "DB max_connections saturated; new requests queue or fail.",
+      "kb_file": "deep-dives/postgres.html",
+      "kb_anchor": "#connection-pooling",
+      "scenario": "url_shortener",
+      "state": "state0_baseline",
+      "tier": 1,
+      "concept_target": "connection-pool-exhaustion",
+      "tags": ["postgres", "connections", "read-heavy"]
+    },
+
+    "db-indexing-btree": {
+      "title": "B-Tree Indexing",
+      "description": "How Postgres B-tree indexes accelerate point lookups and range scans.",
+      "kb_file": "core-concepts/db-indexing.html",
+      "kb_anchor": "#b-tree",
+      "scenario": "url_shortener",
+      "state": "state0_baseline",
+      "tier": 1,
+      "concept_target": "b-tree-index",
+      "tags": ["postgres", "indexing", "read-performance"]
+    },
+
+    "lsm-tree": {
+      "title": "LSM Tree & Compaction (Cassandra)",
+      "description": "Write-optimized storage: commit log → memtable → SSTable flush → compaction I/O spike.",
+      "kb_file": "core-concepts/db-indexing.html",
+      "kb_anchor": "#lsm-trees",
+      "scenario": "write_scaling",
+      "state": "state2_cassandra",
+      "tier": 2,
+      "concept_target": "lsm-compaction",
+      "tags": ["cassandra", "write-heavy", "storage"]
+    },
+
+    "async-queues": {
+      "title": "Async Queues & Write Decoupling",
+      "description": "Decouple writes from synchronous request path using a message queue.",
+      "kb_file": "patterns/scaling-writes.html",
+      "kb_anchor": "#write-queues",
+      "scenario": "write_scaling",
+      "state": "state1_queue",
+      "tier": 1,
+      "concept_target": "async-write-queue",
+      "tags": ["queues", "write-heavy", "backpressure"]
+    },
+
+    "backpressure": {
+      "title": "Backpressure & Load Shedding",
+      "description": "Producer slows or sheds load when consumer queue fills.",
+      "kb_file": "patterns/scaling-writes.html",
+      "kb_anchor": "#burst-handling",
+      "scenario": "write_scaling",
+      "state": "state2_backpressure",
+      "tier": 2,
+      "concept_target": "backpressure",
+      "tags": ["queues", "write-heavy", "reliability"]
+    },
+
+    "fan-out-on-write": {
+      "title": "Fan-out on Write vs Read",
+      "description": "Pre-compute and push to followers at write time vs pull at read time. Trade-offs for write amplification vs read latency.",
+      "kb_file": "patterns/scaling-reads.html",
+      "kb_anchor": "#denormalization",
+      "scenario": "fan_out",
+      "state": "state0_baseline",
+      "tier": 1,
+      "concept_target": "fan-out-on-write",
+      "tags": ["fan-out", "social", "write-amplification"]
+    },
+
+    "eventual-consistency": {
+      "title": "Eventual Consistency",
+      "description": "Replicas converge to same state without synchronous coordination. Stale reads are possible.",
+      "kb_file": "deep-dives/cap-theorem.html",
+      "kb_anchor": "#eventual-consistency",
+      "scenario": "fan_out",
+      "state": "state2_replicas",
+      "tier": 2,
+      "concept_target": "eventual-consistency",
+      "tags": ["consistency", "replication", "cap"]
+    },
+
+    "token-bucket": {
+      "title": "Token Bucket Rate Limiting",
+      "description": "Redis-based token bucket: atomic DECR + TTL per key. Allows bursts up to bucket size.",
+      "kb_file": "deep-dives/redis.html",
+      "kb_anchor": "#rate-limiting",
+      "scenario": "rate_limiting",
+      "state": "state0_baseline",
+      "tier": 1,
+      "concept_target": "token-bucket",
+      "tags": ["rate-limiting", "redis", "api-gateway"]
+    },
+
+    "sliding-window": {
+      "title": "Sliding Window Rate Limiting",
+      "description": "Sorted set in Redis tracks request timestamps. More accurate than fixed window, higher memory cost.",
+      "kb_file": "deep-dives/redis.html",
+      "kb_anchor": "#rate-limiting",
+      "scenario": "rate_limiting",
+      "state": "state1_sliding-window",
+      "tier": 2,
+      "concept_target": "sliding-window",
+      "tags": ["rate-limiting", "redis", "distributed"]
+    },
+
+    "distributed-rate-limiting": {
+      "title": "Distributed Rate Limiting",
+      "description": "Rate limit across multiple app nodes using Redis as shared counter. Race conditions without Lua/atomic ops.",
+      "kb_file": "deep-dives/redis.html",
+      "kb_anchor": "#distributed-locks",
+      "scenario": "rate_limiting",
+      "state": "state2_distributed",
+      "tier": 3,
+      "concept_target": "redis-atomic-ops",
+      "tags": ["rate-limiting", "redis", "distributed"]
+    },
+
+    "presigned-urls": {
+      "title": "Presigned URLs & Direct Upload",
+      "description": "Client uploads directly to S3 using a time-limited signed URL. App never handles blob data.",
+      "kb_file": "patterns/large-blobs.html",
+      "kb_anchor": "#direct-upload",
+      "scenario": "blob_store",
+      "state": "state0_baseline",
+      "tier": 1,
+      "concept_target": "presigned-urls",
+      "tags": ["s3", "blob-store", "upload"]
+    },
+
+    "multipart-upload": {
+      "title": "Multipart Upload",
+      "description": "Split large files into parts, upload in parallel, server assembles. Required for >5GB files on S3.",
+      "kb_file": "patterns/large-blobs.html",
+      "kb_anchor": "#resumable-uploads",
+      "scenario": "blob_store",
+      "state": "state1_multipart",
+      "tier": 2,
+      "concept_target": "multipart-upload",
+      "tags": ["s3", "blob-store", "large-files"]
+    },
+
+    "cdn-caching": {
+      "title": "CDN Edge Caching & Origin Protection",
+      "description": "Cache blobs at edge nodes. Origin protection prevents cache-bypass attacks overwhelming S3.",
+      "kb_file": "patterns/large-blobs.html",
+      "kb_anchor": "#direct-download",
+      "scenario": "blob_store",
+      "state": "state2_cdn",
+      "tier": 3,
+      "concept_target": "cdn-origin-protection",
+      "tags": ["cdn", "blob-store", "caching"]
+    },
+
+    "kafka-partitions": {
+      "title": "Kafka Partitions & Consumer Groups",
+      "description": "Partitions enable parallel consumption. Consumer group divides partitions across instances.",
+      "kb_file": "deep-dives/kafka.html",
+      "kb_anchor": "#architecture",
+      "scenario": "stream_proc",
+      "state": "state0_baseline",
+      "tier": 1,
+      "concept_target": "kafka-partitions",
+      "tags": ["kafka", "streaming", "parallelism"]
+    },
+
+    "at-least-once-delivery": {
+      "title": "At-Least-Once Delivery & Idempotency",
+      "description": "Kafka retries on failure, so consumers may see duplicate messages. Idempotent processing required.",
+      "kb_file": "deep-dives/kafka.html",
+      "kb_anchor": "#consumer-retries",
+      "scenario": "stream_proc",
+      "state": "state1_at-least-once",
+      "tier": 2,
+      "concept_target": "idempotency",
+      "tags": ["kafka", "reliability", "idempotency"]
+    },
+
+    "offset-management": {
+      "title": "Kafka Offset Management & Consumer Lag",
+      "description": "Consumers commit offsets. Lag = how far behind production. Partition rebalancing causes lag spikes.",
+      "kb_file": "deep-dives/kafka.html",
+      "kb_anchor": "#scalability",
+      "scenario": "stream_proc",
+      "state": "state2_consumer-lag",
+      "tier": 3,
+      "concept_target": "offset-lag",
+      "tags": ["kafka", "streaming", "lag"]
+    },
+
+    "inverted-index": {
+      "title": "Inverted Index & Full-Text Search",
+      "description": "Elasticsearch maps terms to document IDs. Index refresh lag means writes not immediately searchable.",
+      "kb_file": "deep-dives/elasticsearch.html",
+      "kb_anchor": "#inverted-index",
+      "scenario": "search",
+      "state": "state0_baseline",
+      "tier": 1,
+      "concept_target": "inverted-index",
+      "tags": ["elasticsearch", "search", "indexing"]
+    },
+
+    "relevance-scoring": {
+      "title": "Relevance Scoring (TF-IDF / BM25)",
+      "description": "Elasticsearch scores documents by term frequency and inverse document frequency. Tuning affects result quality.",
+      "kb_file": "deep-dives/elasticsearch.html",
+      "kb_anchor": "#sorting",
+      "scenario": "search",
+      "state": "state1_scoring",
+      "tier": 2,
+      "concept_target": "relevance-scoring",
+      "tags": ["elasticsearch", "search", "ranking"]
+    },
+
+    "index-refresh-lag": {
+      "title": "Index Refresh Lag & Shard Routing",
+      "description": "Elasticsearch refreshes every 1s by default. Writes not searchable until refresh. Shard routing affects write hot spots.",
+      "kb_file": "deep-dives/elasticsearch.html",
+      "kb_anchor": "#cluster-architecture",
+      "scenario": "search",
+      "state": "state2_shard-routing",
+      "tier": 3,
+      "concept_target": "index-lag",
+      "tags": ["elasticsearch", "search", "sharding"]
+    },
+
+    "two-phase-commit": {
+      "title": "Two-Phase Commit (2PC)",
+      "description": "Coordinator asks all participants to prepare, then commits. Blocking if coordinator fails.",
+      "kb_file": "patterns/dealing-with-contention.html",
+      "kb_anchor": "#two-phase-commit",
+      "scenario": "consistency",
+      "state": "state0_baseline",
+      "tier": 1,
+      "concept_target": "two-phase-commit",
+      "tags": ["consistency", "distributed-transactions", "postgres"]
+    },
+
+    "saga-pattern": {
+      "title": "Saga Pattern",
+      "description": "Sequence of local transactions with compensating rollbacks. No distributed lock needed.",
+      "kb_file": "patterns/dealing-with-contention.html",
+      "kb_anchor": "#saga-pattern",
+      "scenario": "consistency",
+      "state": "state1_saga",
+      "tier": 2,
+      "concept_target": "saga-compensating-txn",
+      "tags": ["consistency", "distributed-transactions", "reliability"]
+    },
+
+    "idempotency-keys": {
+      "title": "Idempotency Keys",
+      "description": "Client sends unique key per request. Server deduplicates retries. Critical for payment/transfer APIs.",
+      "kb_file": "patterns/dealing-with-contention.html",
+      "kb_anchor": "#optimistic-concurrency",
+      "scenario": "consistency",
+      "state": "state2_idempotency",
+      "tier": 3,
+      "concept_target": "idempotency-keys",
+      "tags": ["consistency", "reliability", "api-design"]
+    },
+
+    "read-replicas": {
+      "title": "Read Replicas",
+      "description": "Route reads to replica, writes to primary. Replica lag means stale reads possible.",
+      "kb_file": "patterns/scaling-reads.html",
+      "kb_anchor": "#read-replicas",
+      "scenario": "url_shortener",
+      "state": "state3_hotkey",
+      "tier": 3,
+      "concept_target": "read-replicas",
+      "tags": ["postgres", "scaling", "read-heavy"]
+    },
+
+    "consistent-hashing": {
+      "title": "Consistent Hashing",
+      "description": "Distributes keys across nodes such that adding/removing a node remaps minimal keys.",
+      "kb_file": "core-concepts/consistent-hashing.html",
+      "kb_anchor": null,
+      "scenario": "rate_limiting",
+      "state": "state2_distributed",
+      "tier": 3,
+      "concept_target": "consistent-hashing",
+      "tags": ["sharding", "distribution", "redis"]
+    },
+
+    "sse-realtime": {
+      "title": "Server-Sent Events (SSE)",
+      "description": "Server pushes events over HTTP keep-alive. One-directional, simpler than WebSockets.",
+      "kb_file": "patterns/realtime-updates.html",
+      "kb_anchor": "#server-sent-events",
+      "scenario": null,
+      "state": null,
+      "tier": null,
+      "concept_target": "sse",
+      "tags": ["realtime", "http", "streaming"],
+      "note": "Used by SystemCraft itself for metrics stream — meta-learning opportunity"
+    }
+  },
+
+  "concept_groups": {
+    "Caching": ["cache-aside", "thundering-herd", "hot-key", "cdn-caching"],
+    "Databases": ["connection-pool-exhaustion", "db-indexing-btree", "lsm-tree", "read-replicas"],
+    "Write Scaling": ["async-queues", "backpressure", "fan-out-on-write"],
+    "Rate Limiting": ["token-bucket", "sliding-window", "distributed-rate-limiting"],
+    "Storage": ["presigned-urls", "multipart-upload", "cdn-caching"],
+    "Stream Processing": ["kafka-partitions", "at-least-once-delivery", "offset-management"],
+    "Search": ["inverted-index", "relevance-scoring", "index-refresh-lag"],
+    "Consistency": ["two-phase-commit", "saga-pattern", "idempotency-keys", "eventual-consistency"]
+  }
+}

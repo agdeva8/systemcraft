@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SystemCraft</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ═══ LANDING OVERLAY ═══ */
+.land{
+  position:fixed;inset:0;z-index:200;
+  background:var(--bg);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  transition:opacity .45s,transform .45s;
+}
+.land.gone{opacity:0;transform:translateY(-18px);pointer-events:none}
+
+.lh{
+  flex-shrink:0;padding:22px 40px;
+  display:flex;align-items:center;gap:14px;
+  border-bottom:1px solid var(--b1);
+}
+.llogo{font-size:20px;font-weight:700;color:var(--acc);letter-spacing:-.03em;font-family:var(--disp)}
+.llogo b{color:var(--t3);font-weight:500}
+.ltag{font-family:var(--mono);font-size:10px;color:var(--t3);margin-left:auto}
+
+.ltabs{
+  display:flex;gap:0;
+  background:var(--s2);border:1px solid var(--b2);
+  border-radius:8px;overflow:hidden;flex-shrink:0;
+}
+.ltab{
+  font-family:var(--mono);font-size:11px;
+  padding:7px 18px;cursor:pointer;color:var(--t3);
+  transition:background .15s,color .15s;border:none;background:none;
+}
+.ltab.on{background:var(--b2);color:var(--acc)}
+
+.lbody{flex:1;overflow-y:auto;padding:28px 40px;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
+
+/* concept view */
+.cgroup{margin-bottom:32px}
+.cgtitle{
+  font-family:var(--mono);font-size:9px;text-transform:uppercase;
+  letter-spacing:.12em;color:var(--t3);margin-bottom:12px;
+  padding-bottom:8px;border-bottom:1px solid var(--b1);
+}
+.cgrid{display:flex;flex-wrap:wrap;gap:8px}
+
+.ccard{
+  padding:10px 14px;border-radius:8px;
+  background:var(--s2);border:1px solid var(--b2);
+  cursor:pointer;transition:border-color .15s,background .15s,transform .1s;
+  display:flex;flex-direction:column;gap:4px;min-width:160px;
+}
+.ccard:hover{border-color:var(--acc);background:rgba(126,255,212,.04);transform:translateY(-1px)}
+.cc-title{font-family:var(--mono);font-size:11px;color:var(--t1)}
+.cc-sub{font-family:var(--mono);font-size:9px;color:var(--t3)}
+.cc-tag{
+  display:inline-block;margin-top:3px;
+  font-family:var(--mono);font-size:8px;
+  padding:2px 7px;border-radius:10px;
+  background:var(--s3);border:1px solid var(--b2);color:var(--t3);
+}
+
+/* scenario view */
+.sgrid{display:flex;flex-direction:column;gap:10px}
+.scard{
+  padding:14px 18px;border-radius:8px;
+  background:var(--s2);border:1px solid var(--b2);
+  cursor:pointer;transition:border-color .15s,background .15s;
+  display:flex;align-items:center;gap:14px;
+}
+.scard:hover{border-color:rgba(126,255,212,.3);background:rgba(126,255,212,.03)}
+.sc-icon{font-size:22px;flex-shrink:0;width:36px;text-align:center}
+.sc-info{flex:1}
+.sc-name{font-family:var(--disp);font-size:13px;color:var(--t1);margin-bottom:3px}
+.sc-vehicle{font-family:var(--mono);font-size:9px;color:var(--t3);margin-bottom:5px}
+.sc-concepts{display:flex;flex-wrap:wrap;gap:4px}
+.sc-ct{
+  font-family:var(--mono);font-size:8px;
+  padding:2px 7px;border-radius:10px;
+  background:var(--s3);border:1px solid var(--b2);color:var(--t3);
+}
+.sc-arrow{font-family:var(--mono);font-size:12px;color:var(--t3);flex-shrink:0}
+:root{
+  --bg:#07090c;--s1:#0d1117;--s2:#131920;--s3:#18202a;--s4:#1e2836;
+  --b1:#1c2532;--b2:#243040;--b3:#2d3d52;
+  --t1:#d4dce8;--t2:#7090b0;--t3:#405060;
+  --green:#1fd888;--gd:rgba(31,216,136,.1);
+  --red:#f05050;--rd:rgba(240,80,80,.12);
+  --amber:#f0a030;--ad:rgba(240,160,48,.1);
+  --teal:#2dd4bf;--td:rgba(45,212,191,.1);
+  --acc:#7effd4;
+  --mono:'IBM Plex Mono',monospace;
+  --disp:'Syne',sans-serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:var(--disp)}
+
+/* ═══ SHELL ═══ */
+.shell{display:flex;flex-direction:column;height:100vh;min-height:0}
+
+/* ═══ TOPBAR ═══ */
+.tb{
+  height:50px;flex-shrink:0;
+  background:var(--s1);border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;padding:0 20px;gap:14px;
+}
+.logo{font-size:16px;font-weight:700;color:var(--acc);letter-spacing:-.03em;font-family:var(--disp)}
+.logo b{color:var(--t3);font-weight:500}
+.tag{
+  font-family:var(--mono);font-size:10px;
+  padding:3px 9px;border-radius:20px;
+  background:var(--s3);border:1px solid var(--b2);color:var(--t2);
+}
+.tag.hi{color:var(--acc);background:rgba(126,255,212,.05);border-color:rgba(126,255,212,.2)}
+.tiers{margin-left:auto;display:flex;align-items:center;gap:5px}
+.tp{width:30px;height:3px;border-radius:2px;background:var(--b2);transition:background .4s}
+.tp.done{background:var(--green)}
+.tp.now{background:var(--acc);box-shadow:0 0 8px rgba(126,255,212,.5)}
+.tier-txt{font-family:var(--mono);font-size:10px;color:var(--t3);margin-right:4px}
+
+/* ═══ BODY ═══ */
+.body{flex:1;display:flex;min-height:0;overflow:hidden}
+
+/* ─── LEFT ─── */
+.left{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--b1)}
+
+/* diagram */
+.dg{
+  flex:1;position:relative;overflow:hidden;
+  background:var(--bg);
+}
+.dg::before{
+  content:'';position:absolute;inset:0;
+  background-image:radial-gradient(var(--b1) 1px,transparent 1px);
+  background-size:24px 24px;pointer-events:none;
+}
+
+.arch{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  gap:0;padding:40px 32px;
+}
+
+/* node */
+.nw{display:flex;flex-direction:column;align-items:center;gap:7px;position:relative;z-index:2}
+.nb{
+  width:108px;height:70px;border-radius:10px;
+  background:var(--s2);border:1px solid var(--b2);
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;cursor:pointer;
+  position:relative;overflow:hidden;
+  transition:transform .15s,border-color .35s,box-shadow .35s;
+}
+.nb::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;transition:background .35s}
+.nb:hover{transform:translateY(-2px)}
+.nb:hover .ck{opacity:1}
+.ck{position:absolute;top:5px;right:7px;font-family:var(--mono);font-size:8px;color:var(--t3);opacity:0;transition:opacity .2s}
+.ni{font-size:20px;line-height:1}
+.nn{font-family:var(--mono);font-size:10px;color:var(--t2)}
+.ns{font-family:var(--mono);font-size:9px;transition:color .35s}
+.nl{font-family:var(--mono);font-size:9px;color:var(--t3);text-align:center;max-width:120px}
+
+/* state classes */
+.nb.ok{border-color:rgba(31,216,136,.25)}
+.nb.ok::after{background:var(--green)}
+.nb.ok .ns{color:var(--green)}
+
+.nb.warn{border-color:rgba(240,160,48,.3);box-shadow:0 0 18px rgba(240,160,48,.08)}
+.nb.warn::after{background:var(--amber)}
+.nb.warn .ns{color:var(--amber)}
+
+.nb.crit{border-color:rgba(240,80,80,.4);box-shadow:0 0 24px rgba(240,80,80,.12);animation:crit 1.8s ease-in-out infinite}
+.nb.crit::after{background:var(--red)}
+.nb.crit .ns{color:var(--red)}
+
+.nb.tl{border-color:rgba(45,212,191,.3);box-shadow:0 0 16px rgba(45,212,191,.08)}
+.nb.tl::after{background:var(--teal)}
+.nb.tl .ns{color:var(--teal)}
+
+.nb.dim{opacity:.3;pointer-events:none}
+
+@keyframes crit{0%,100%{box-shadow:0 0 24px rgba(240,80,80,.12)}50%{box-shadow:0 0 36px rgba(240,80,80,.28)}}
+
+/* connectors */
+.cn{display:flex;align-items:center;flex-shrink:0;position:relative}
+.cl{
+  width:50px;height:1px;background:var(--b3);
+  position:relative;transition:background .35s;
+}
+.cl::after{
+  content:'';position:absolute;right:-4px;top:-3px;
+  width:0;height:0;
+  border-top:3px solid transparent;border-bottom:3px solid transparent;
+  border-left:5px solid var(--b3);
+  transition:border-left-color .35s;
+}
+.cl.act{background:rgba(126,255,212,.5)}
+.cl.act::after{border-left-color:rgba(126,255,212,.5)}
+.cl.hot{background:rgba(240,80,80,.6)}
+.cl.hot::after{border-left-color:rgba(240,80,80,.6)}
+.cl.teal{background:rgba(45,212,191,.5)}
+.cl.teal::after{border-left-color:rgba(45,212,191,.5)}
+.clb{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9px;color:var(--t3);white-space:nowrap}
+
+/* redis branch */
+.rb{
+  display:flex;flex-direction:column;align-items:center;
+  position:relative;z-index:3;margin:0 -50px;
+  opacity:0;transform:translateY(-10px);
+  transition:opacity .5s,transform .5s;pointer-events:none;
+}
+.rb.on{opacity:1;transform:none;pointer-events:all}
+.vl{width:1px;height:26px;background:rgba(45,212,191,.4)}
+
+/* add redis */
+.arn{
+  width:108px;height:70px;border-radius:10px;
+  border:1px dashed var(--b3);background:transparent;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;cursor:pointer;
+  font-family:var(--mono);font-size:10px;color:var(--t3);
+  transition:border-color .2s,color .2s,background .2s;
+}
+.arn:hover{border-color:var(--teal);color:var(--teal);background:var(--td)}
+
+/* narrator */
+.nar{
+  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--s3);border:1px solid var(--b2);
+  border-radius:8px;padding:9px 18px;
+  font-family:var(--mono);font-size:11px;color:var(--t2);
+  white-space:nowrap;z-index:5;
+  opacity:0;transition:opacity .4s;pointer-events:none;
+}
+.nar b{color:var(--amber)}
+.nar.on{opacity:1}
+
+/* ─── METRICS BAR ─── */
+.mx{
+  height:168px;flex-shrink:0;
+  background:var(--s1);border-top:1px solid var(--b1);
+  display:flex;align-items:stretch;
+}
+
+.mt{
+  flex:1;display:flex;flex-direction:column;justify-content:center;
+  padding:14px 18px;border-right:1px solid var(--b1);
+  position:relative;overflow:hidden;transition:background .4s;
+}
+.mt.rr{background:var(--rd)}
+.mt.gg{background:var(--gd)}
+.mt.aa{background:var(--ad)}
+.mt.tt{background:var(--td)}
+
+.mk{font-family:var(--mono);font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
+.mv{font-family:var(--mono);font-size:26px;font-weight:500;line-height:1;color:var(--t1);transition:color .4s}
+.mv.r{color:var(--red)}.mv.g{color:var(--green)}.mv.a{color:var(--amber)}.mv.tl{color:var(--teal)}
+.mu{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:3px}
+
+.bw{height:3px;background:var(--b2);border-radius:2px;overflow:hidden;margin-top:10px}
+.bf{height:100%;border-radius:2px;transition:width 1s ease}
+.bf.r{background:var(--red)}.bf.g{background:var(--green)}.bf.tl{background:var(--teal)}.bf.a{background:var(--amber)}
+
+/* traffic block */
+.trb{
+  width:196px;flex-shrink:0;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:14px 18px;border-right:1px solid var(--b1);
+}
+.trr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.trt{font-family:var(--mono);font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.09em}
+.trn{font-family:var(--mono);font-size:11px;color:var(--t2)}
+
+input[type=range]{
+  width:100%;height:3px;-webkit-appearance:none;
+  background:var(--b2);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;
+  border-radius:50%;background:var(--acc);cursor:pointer;
+  box-shadow:0 0 8px rgba(126,255,212,.4);
+  transition:transform .1s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+
+.hn{
+  margin-top:10px;font-family:var(--mono);font-size:9px;
+  color:var(--amber);line-height:1.5;
+  opacity:0;transition:opacity .4s;
+}
+.hn.on{opacity:1}
+
+/* ─── RIGHT / SOCRATIC ─── */
+.right{
+  width:336px;flex-shrink:0;
+  display:flex;flex-direction:column;
+  background:var(--s1);
+}
+.rh{
+  height:50px;flex-shrink:0;
+  border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;padding:0 16px;gap:9px;
+}
+.dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--acc);box-shadow:0 0 8px rgba(126,255,212,.5);
+  animation:pulse 2.5s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.rl{font-family:var(--mono);font-size:11px;color:var(--t2)}
+.rm{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--t3)}
+
+/* chat */
+.chat{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
+.cm{animation:fi .25s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.cw{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:4px}
+.cw.ai{color:var(--acc)}.cw.user{color:var(--t3)}
+.cb{font-size:12px;line-height:1.65;padding:9px 12px;border-radius:7px;border:1px solid var(--b2);background:var(--s2);color:var(--t1)}
+.cb.ai{background:rgba(126,255,212,.04);border-color:rgba(126,255,212,.12)}
+.cb.user{background:var(--s3);border-color:var(--b3);color:var(--t2)}
+.cb code{font-family:var(--mono);font-size:10px;color:var(--acc);background:rgba(126,255,212,.08);padding:1px 4px;border-radius:3px}
+.cb strong{color:var(--t1);font-weight:600}
+
+/* hints */
+.hints{display:flex;flex-wrap:wrap;gap:5px;padding:0 14px 8px}
+.hnt{
+  font-family:var(--mono);font-size:9px;
+  padding:4px 10px;border-radius:20px;
+  border:1px solid var(--b3);color:var(--t3);
+  cursor:pointer;background:var(--s2);
+  transition:border-color .15s,color .15s;
+}
+.hnt:hover{border-color:var(--acc);color:var(--acc)}
+
+/* advance badge */
+.adv{
+  margin:0 14px 8px;
+  background:rgba(31,216,136,.06);
+  border:1px solid rgba(31,216,136,.18);
+  border-radius:6px;padding:9px 12px;
+  font-family:var(--mono);font-size:10px;
+  color:var(--green);line-height:1.6;display:none;
+}
+.adv.on{display:block}
+
+/* input */
+.ir{flex-shrink:0;display:flex;gap:7px;padding:10px 14px;border-top:1px solid var(--b1)}
+.ci{
+  flex:1;background:var(--s2);
+  border:1px solid var(--b2);border-radius:7px;
+  padding:8px 11px;font-size:12px;
+  font-family:var(--disp);color:var(--t1);outline:none;
+  transition:border-color .2s;
+}
+.ci:focus{border-color:rgba(126,255,212,.35)}
+.ci::placeholder{color:var(--t3);font-size:11px}
+.sb{
+  background:rgba(126,255,212,.07);
+  border:1px solid rgba(126,255,212,.18);
+  border-radius:7px;padding:8px 13px;
+  font-family:var(--mono);font-size:10px;color:var(--acc);
+  cursor:pointer;transition:background .15s;white-space:nowrap;
+}
+.sb:hover{background:rgba(126,255,212,.14)}
+
+/* ═══ MODAL ═══ */
+.mo{
+  position:fixed;inset:0;background:rgba(0,0,0,.8);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;opacity:0;pointer-events:none;
+  transition:opacity .2s;backdrop-filter:blur(6px);
+}
+.mo.on{opacity:1;pointer-events:all}
+.mw{
+  background:var(--s1);border:1px solid var(--b2);
+  border-radius:12px;width:460px;
+  max-height:560px;overflow:hidden;
+  transform:translateY(10px) scale(.98);transition:transform .2s;
+}
+.mo.on .mw{transform:none}
+.mh{padding:13px 17px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between}
+.mt2{font-family:var(--mono);font-size:11px;color:var(--t2)}
+.mc{background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;transition:color .15s;line-height:1;padding:0}
+.mc:hover{color:var(--t1)}
+.mb{padding:17px;overflow-y:auto;max-height:490px;font-family:var(--mono);font-size:11px;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
+
+.is{margin-bottom:16px}
+.is:last-child{margin-bottom:0}
+.ih{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--t3);margin-bottom:9px}
+.ir2{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1)}
+.ir2:last-child{border-bottom:none}
+.ik{color:var(--t3)}.iv{color:var(--t1)}
+.iv.r{color:var(--red)}.iv.g{color:var(--green)}.iv.a{color:var(--amber)}.iv.tl{color:var(--teal)}
+.cod{
+  background:var(--s3);border:1px solid var(--b2);
+  border-radius:6px;padding:10px 12px;
+  font-size:10px;color:var(--t2);line-height:1.9;margin-top:5px;
+}
+.cod .h{color:var(--acc)}.cod .r{color:var(--red)}.cod .g{color:var(--green)}.cod .a{color:var(--amber)}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+</style>
+</head>
+<body>
+<!-- LANDING SELECTION -->
+<div class="land" id="land">
+  <div class="lh">
+    <div class="llogo">System<b>Craft</b></div>
+    <div class="ltabs">
+      <button class="ltab on" id="tab-concept" onclick="setTab('concept')">by concept</button>
+      <button class="ltab" id="tab-scenario" onclick="setTab('scenario')">by scenario</button>
+    </div>
+    <div class="ltag">pick what to break →</div>
+  </div>
+  <div class="lbody">
+
+    <!-- CONCEPT VIEW -->
+    <div id="view-concept">
+
+      <div class="cgroup">
+        <div class="cgtitle">Caching</div>
+        <div class="cgrid">
+          <div class="ccard" onclick="launch('cache-aside','url_shortener','state0_baseline')">
+            <div class="cc-title">Cache-Aside Pattern</div>
+            <div class="cc-sub">App misses → DB → write to cache</div>
+            <span class="cc-tag">redis · postgres</span>
+          </div>
+          <div class="ccard" onclick="launch('thundering-herd','url_shortener','state2_thundering_herd')">
+            <div class="cc-title">Thundering Herd</div>
+            <div class="cc-sub">Mass cache expiry → DB spike</div>
+            <span class="cc-tag">redis · ttl-jitter</span>
+          </div>
+          <div class="ccard" onclick="launch('hot-key','url_shortener','state3_hotkey')">
+            <div class="cc-title">Hot Key Problem</div>
+            <div class="cc-sub">One key → Redis CPU saturation</div>
+            <span class="cc-tag">redis · l1-cache</span>
+          </div>
+          <div class="ccard" onclick="launch('connection-pool-exhaustion','url_shortener','state0_baseline')">
+            <div class="cc-title">Connection Pool Exhaustion</div>
+            <div class="cc-sub">max_connections saturated, queue builds</div>
+            <span class="cc-tag">postgres · connections</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cgroup">
+        <div class="cgtitle">Write Scaling</div>
+        <div class="cgrid">
+          <div class="ccard" onclick="launch('async-queues','write_scaling','state1_queue')">
+            <div class="cc-title">Async Queues</div>
+            <div class="cc-sub">Decouple writes from request path</div>
+            <span class="cc-tag">redis · queue</span>
+          </div>
+          <div class="ccard" onclick="launch('lsm-tree','write_scaling','state2_cassandra')">
+            <div class="cc-title">LSM Tree & Compaction</div>
+            <div class="cc-sub">Memtable flush → SSTable → I/O spike</div>
+            <span class="cc-tag">cassandra · lsm</span>
+          </div>
+          <div class="ccard" onclick="launch('backpressure','write_scaling','state3_backpressure')">
+            <div class="cc-title">Backpressure</div>
+            <div class="cc-sub">Queue fills → producer slows</div>
+            <span class="cc-tag">queues · reliability</span>
+          </div>
+          <div class="ccard" onclick="launch('fan-out-on-write','fan_out','state0_baseline')">
+            <div class="cc-title">Fan-out on Write vs Read</div>
+            <div class="cc-sub">Pre-push vs pull — latency trade-off</div>
+            <span class="cc-tag">redis · write-amplification</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cgroup">
+        <div class="cgtitle">Rate Limiting</div>
+        <div class="cgrid">
+          <div class="ccard" onclick="launch('token-bucket','rate_limiting','state1_token_bucket')">
+            <div class="cc-title">Token Bucket</div>
+            <div class="cc-sub">Redis atomic DECR + TTL per key</div>
+            <span class="cc-tag">redis · api-gateway</span>
+          </div>
+          <div class="ccard" onclick="launch('sliding-window','rate_limiting','state2_sliding_window')">
+            <div class="cc-title">Sliding Window</div>
+            <div class="cc-sub">Sorted set tracks timestamps, no fixed window</div>
+            <span class="cc-tag">redis · precision</span>
+          </div>
+          <div class="ccard" onclick="launch('distributed-rate-limiting','rate_limiting','state3_distributed')">
+            <div class="cc-title">Distributed Rate Limiting</div>
+            <div class="cc-sub">Multi-node shared counter, race conditions</div>
+            <span class="cc-tag">redis · lua · atomic-ops</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cgroup">
+        <div class="cgtitle">Stream Processing</div>
+        <div class="cgrid">
+          <div class="ccard" onclick="launch('kafka-partitions','stream_proc','state0_baseline')">
+            <div class="cc-title">Kafka Partitions</div>
+            <div class="cc-sub">Consumer group divides partitions</div>
+            <span class="cc-tag">kafka · parallelism</span>
+          </div>
+          <div class="ccard" onclick="launch('at-least-once-delivery','stream_proc','state2_at_least_once')">
+            <div class="cc-title">At-Least-Once Delivery</div>
+            <div class="cc-sub">Retries → duplicates → idempotency needed</div>
+            <span class="cc-tag">kafka · idempotency</span>
+          </div>
+          <div class="ccard" onclick="launch('offset-management','stream_proc','state3_consumer_lag')">
+            <div class="cc-title">Consumer Lag</div>
+            <div class="cc-sub">Lag spikes during partition rebalance</div>
+            <span class="cc-tag">kafka · offsets</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cgroup">
+        <div class="cgtitle">Search</div>
+        <div class="cgrid">
+          <div class="ccard" onclick="launch('inverted-index','search','state1_es_basic')">
+            <div class="cc-title">Inverted Index</div>
+            <div class="cc-sub">Terms map to doc IDs. Refresh lag = write delay</div>
+            <span class="cc-tag">elasticsearch · indexing</span>
+          </div>
+          <div class="ccard" onclick="launch('relevance-scoring','search','state2_scoring')">
+            <div class="cc-title">Relevance Scoring (BM25)</div>
+            <div class="cc-sub">TF-IDF weighting affects result quality</div>
+            <span class="cc-tag">elasticsearch · ranking</span>
+          </div>
+          <div class="ccard" onclick="launch('index-refresh-lag','search','state3_shard_routing')">
+            <div class="cc-title">Shard Routing & Hot Spots</div>
+            <div class="cc-sub">Uneven key distribution → overloaded shards</div>
+            <span class="cc-tag">elasticsearch · sharding</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cgroup">
+        <div class="cgtitle">Consistency</div>
+        <div class="cgrid">
+          <div class="ccard" onclick="launch('two-phase-commit','consistency','state1_2pc')">
+            <div class="cc-title">Two-Phase Commit</div>
+            <div class="cc-sub">Coordinator + prepare + commit — blocks on failure</div>
+            <span class="cc-tag">postgres · distributed-txn</span>
+          </div>
+          <div class="ccard" onclick="launch('saga-pattern','consistency','state2_saga')">
+            <div class="cc-title">Saga Pattern</div>
+            <div class="cc-sub">Local txns + compensating rollbacks, no lock</div>
+            <span class="cc-tag">postgres · reliability</span>
+          </div>
+          <div class="ccard" onclick="launch('idempotency-keys','consistency','state3_idempotency')">
+            <div class="cc-title">Idempotency Keys</div>
+            <div class="cc-sub">Server deduplicates retries by client key</div>
+            <span class="cc-tag">api · payments</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cgroup">
+        <div class="cgtitle">Storage at Scale</div>
+        <div class="cgrid">
+          <div class="ccard" onclick="launch('presigned-urls','blob_store','state1_presigned')">
+            <div class="cc-title">Presigned URLs</div>
+            <div class="cc-sub">Client uploads direct to S3, app never touches blob</div>
+            <span class="cc-tag">s3 · localstack</span>
+          </div>
+          <div class="ccard" onclick="launch('multipart-upload','blob_store','state2_multipart')">
+            <div class="cc-title">Multipart Upload</div>
+            <div class="cc-sub">Split → parallel parts → server assembles</div>
+            <span class="cc-tag">s3 · large-files</span>
+          </div>
+          <div class="ccard" onclick="launch('cdn-caching','blob_store','state3_cdn')">
+            <div class="cc-title">CDN & Origin Protection</div>
+            <div class="cc-sub">Edge cache + prevent bypass overwhelming origin</div>
+            <span class="cc-tag">cdn · s3</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SCENARIO VIEW -->
+    <div id="view-scenario" style="display:none">
+      <div class="sgrid">
+        <div class="scard" onclick="launch('cache-aside','url_shortener','state0_baseline')">
+          <div class="sc-icon">🔗</div>
+          <div class="sc-info">
+            <div class="sc-name">URL Shortener</div>
+            <div class="sc-vehicle">vehicle for read-heavy caching patterns</div>
+            <div class="sc-concepts">
+              <span class="sc-ct">cache-aside</span>
+              <span class="sc-ct">thundering-herd</span>
+              <span class="sc-ct">hot-key</span>
+              <span class="sc-ct">ttl-jitter</span>
+              <span class="sc-ct">connection-pool</span>
+            </div>
+          </div>
+          <div class="sc-arrow">→</div>
+        </div>
+        <div class="scard" onclick="launch('async-queues','write_scaling','state0_baseline')">
+          <div class="sc-icon">📋</div>
+          <div class="sc-info">
+            <div class="sc-name">Pastebin / File Upload</div>
+            <div class="sc-vehicle">vehicle for write-heavy scaling patterns</div>
+            <div class="sc-concepts">
+              <span class="sc-ct">async-queues</span>
+              <span class="sc-ct">backpressure</span>
+              <span class="sc-ct">lsm-trees</span>
+              <span class="sc-ct">dead-letter-queue</span>
+            </div>
+          </div>
+          <div class="sc-arrow">→</div>
+        </div>
+        <div class="scard" onclick="launch('fan-out-on-write','fan_out','state0_baseline')">
+          <div class="sc-icon">📡</div>
+          <div class="sc-info">
+            <div class="sc-name">Twitter / Notifications</div>
+            <div class="sc-vehicle">vehicle for fan-out and eventual consistency</div>
+            <div class="sc-concepts">
+              <span class="sc-ct">fan-out-on-write</span>
+              <span class="sc-ct">write-amplification</span>
+              <span class="sc-ct">eventual-consistency</span>
+            </div>
+          </div>
+          <div class="sc-arrow">→</div>
+        </div>
+        <div class="scard" onclick="launch('token-bucket','rate_limiting','state0_baseline')">
+          <div class="sc-icon">🚦</div>
+          <div class="sc-info">
+            <div class="sc-name">API Gateway</div>
+            <div class="sc-vehicle">vehicle for rate limiting patterns</div>
+            <div class="sc-concepts">
+              <span class="sc-ct">token-bucket</span>
+              <span class="sc-ct">sliding-window</span>
+              <span class="sc-ct">redis-atomic-ops</span>
+              <span class="sc-ct">distributed-rl</span>
+            </div>
+          </div>
+          <div class="sc-arrow">→</div>
+        </div>
+        <div class="scard" onclick="launch('presigned-urls','blob_store','state0_baseline')">
+          <div class="sc-icon">🗄️</div>
+          <div class="sc-info">
+            <div class="sc-name">S3-like Blob Store</div>
+            <div class="sc-vehicle">vehicle for storage at scale</div>
+            <div class="sc-concepts">
+              <span class="sc-ct">presigned-urls</span>
+              <span class="sc-ct">multipart-upload</span>
+              <span class="sc-ct">cdn-caching</span>
+              <span class="sc-ct">origin-protection</span>
+            </div>
+          </div>
+          <div class="sc-arrow">→</div>
+        </div>
+        <div class="scard" onclick="launch('kafka-partitions','stream_proc','state0_baseline')">
+          <div class="sc-icon">📊</div>
+          <div class="sc-info">
+            <div class="sc-name">Analytics Pipeline</div>
+            <div class="sc-vehicle">vehicle for stream processing</div>
+            <div class="sc-concepts">
+              <span class="sc-ct">kafka-partitions</span>
+              <span class="sc-ct">consumer-groups</span>
+              <span class="sc-ct">at-least-once</span>
+              <span class="sc-ct">offset-management</span>
+            </div>
+          </div>
+          <div class="sc-arrow">→</div>
+        </div>
+        <div class="scard" onclick="launch('inverted-index','search','state0_baseline')">
+          <div class="sc-icon">🔍</div>
+          <div class="sc-info">
+            <div class="sc-name">Job Board</div>
+            <div class="sc-vehicle">vehicle for search at scale</div>
+            <div class="sc-concepts">
+              <span class="sc-ct">inverted-index</span>
+              <span class="sc-ct">relevance-scoring</span>
+              <span class="sc-ct">index-lag</span>
+              <span class="sc-ct">shard-routing</span>
+            </div>
+          </div>
+          <div class="sc-arrow">→</div>
+        </div>
+        <div class="scard" onclick="launch('two-phase-commit','consistency','state0_baseline')">
+          <div class="sc-icon">🏦</div>
+          <div class="sc-info">
+            <div class="sc-name">Bank Transfer</div>
+            <div class="sc-vehicle">vehicle for distributed consistency</div>
+            <div class="sc-concepts">
+              <span class="sc-ct">two-phase-commit</span>
+              <span class="sc-ct">saga-pattern</span>
+              <span class="sc-ct">idempotency-keys</span>
+              <span class="sc-ct">distributed-txns</span>
+            </div>
+          </div>
+          <div class="sc-arrow">→</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="shell">
+
+<!-- TOPBAR -->
+<div class="tb">
+  <div class="logo">System<b>Craft</b></div>
+  <div class="tag">url-shortener</div>
+  <div class="tag hi">caching · thundering-herd</div>
+  <div class="tiers">
+    <span class="tier-txt">tier</span>
+    <div class="tp done"></div>
+    <div class="tp now"></div>
+    <div class="tp"></div>
+    <div class="tp"></div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+  <!-- LEFT -->
+  <div class="left">
+
+    <!-- DIAGRAM -->
+    <div class="dg">
+      <div class="arch" id="arch">
+
+        <div class="nw">
+          <div class="nb ok" onclick="openM('client')">
+            <span class="ck">inspect</span>
+            <div class="ni">🖥</div>
+            <div class="nn">client</div>
+            <div class="ns" id="sc">healthy</div>
+          </div>
+          <div class="nl">browser</div>
+        </div>
+
+        <div class="cn"><div class="cl act" id="c1"><span class="clb" id="c1l">1.1k req/s</span></div></div>
+
+        <div class="nw">
+          <div class="nb ok" onclick="openM('app')">
+            <span class="ck">inspect</span>
+            <div class="ni">⚙️</div>
+            <div class="nn">app server</div>
+            <div class="ns" id="sa">23% cpu</div>
+          </div>
+          <div class="nl">fastapi · 4 workers</div>
+        </div>
+
+        <div class="rb" id="rb">
+          <div class="vl"></div>
+          <div class="nw">
+            <div class="nb tl" onclick="openM('redis')">
+              <span class="ck">inspect</span>
+              <div class="ni">⚡</div>
+              <div class="nn">redis</div>
+              <div class="ns" id="sr">91% hit</div>
+            </div>
+            <div class="nl">cache · ttl 5m</div>
+          </div>
+          <div class="vl"></div>
+        </div>
+
+        <div class="cn"><div class="cl hot" id="c2"><span class="clb" id="c2l">all reads</span></div></div>
+
+        <div class="nw">
+          <div class="nb crit" onclick="openM('postgres')">
+            <span class="ck">inspect</span>
+            <div class="ni">🐘</div>
+            <div class="nn">postgres</div>
+            <div class="ns" id="sp">94% cpu 🔴</div>
+          </div>
+          <div class="nl">primary · 100 conns</div>
+        </div>
+
+      </div>
+
+      <!-- add redis hint -->
+      <div id="arh" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-115%);display:none;flex-direction:column;align-items:center;gap:6px;">
+        <div class="nl" style="font-size:9px">↑ add to diagram</div>
+        <div class="arn" onclick="addRedis()">
+          <div style="font-size:18px">⚡</div>
+          <div>+ redis cache</div>
+        </div>
+      </div>
+
+      <div class="nar" id="nar"><b>🔴 HN front page:</b> traffic spiked 100×</div>
+    </div>
+
+    <!-- METRICS BAR -->
+    <div class="mx">
+
+      <div class="trb">
+        <div class="trr">
+          <span class="trt">traffic</span>
+          <span class="trn" id="trn">100k / day</span>
+        </div>
+        <input type="range" id="tsl" min="1" max="10" value="7" step="1" oninput="onT(this.value)">
+        <div class="hn" id="hnn">🔴 Hacker News spike<br>100× normal traffic</div>
+      </div>
+
+      <div class="mt rr" id="mlat">
+        <div class="mk">p99 latency</div>
+        <div class="mv r" id="vlat">847</div>
+        <div class="mu">ms</div>
+      </div>
+
+      <div class="mt rr" id="merr">
+        <div class="mk">error rate</div>
+        <div class="mv r" id="verr">3.2</div>
+        <div class="mu">percent</div>
+      </div>
+
+      <div class="mt rr" id="mcpu">
+        <div class="mk">db cpu</div>
+        <div class="mv r" id="vcpu">94</div>
+        <div class="mu">percent</div>
+        <div class="bw"><div class="bf r" id="cpub" style="width:94%"></div></div>
+      </div>
+
+      <div class="mt" id="mhit" style="display:none">
+        <div class="mk">cache hit ratio</div>
+        <div class="mv tl" id="vhit">91</div>
+        <div class="mu">percent</div>
+        <div class="bw"><div class="bf tl" style="width:91%"></div></div>
+      </div>
+
+      <div class="mt" id="mcost">
+        <div class="mk">cost / mo</div>
+        <div class="mv" id="vcost">$40</div>
+        <div class="mu">USD</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT: SOCRATIC -->
+  <div class="right">
+    <div class="rh">
+      <div class="dot"></div>
+      <div class="rl">diagnosis loop</div>
+      <div class="rm">claude opus</div>
+    </div>
+
+    <div class="chat" id="chat">
+      <div class="cm">
+        <div class="cw ai">systemcraft</div>
+        <div class="cb ai">Your system is struggling under load. <strong>What do you think is happening?</strong></div>
+      </div>
+    </div>
+
+    <div class="hints" id="hints">
+      <div class="hnt" onclick="sh('the database is getting hammered by too many reads')">db overloaded</div>
+      <div class="hnt" onclick="sh('same URLs are being read over and over hitting postgres every time')">repeated reads</div>
+      <div class="hnt" onclick="sh('we need to add a cache like redis')">add a cache</div>
+    </div>
+
+    <div class="adv" id="adv">
+      ✓ concept: cache-aside pattern<br>
+      <span style="color:var(--t3)">watch — top URL TTL expires in ~5 min...</span>
+    </div>
+
+    <div class="ir">
+      <input class="ci" id="ci" placeholder="what do you think is happening?" onkeydown="if(event.key==='Enter')send()">
+      <button class="sb" onclick="send()">send →</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="mo" id="mo" onclick="maybeClose(event)">
+  <div class="mw">
+    <div class="mh">
+      <div class="mt2" id="mt2">internals</div>
+      <button class="mc" onclick="closeM()">×</button>
+    </div>
+    <div class="mb" id="mb"></div>
+  </div>
+</div>
+
+<script>
+// ── data ──
+const TR=[1e3,5e3,1e4,2.5e4,5e4,7.5e4,1e5,1.5e5,2.5e5,5e5];
+const fmt=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'k':n;
+let redis=false;
+
+// ── traffic ──
+function onT(v){
+  const r=TR[v-1];
+  document.getElementById('trn').textContent=fmt(r)+' / day';
+  if(v<=3){healthy();document.getElementById('hnn').classList.remove('on')}
+  else if(v<=5){warn();document.getElementById('hnn').classList.remove('on')}
+  else{broken();document.getElementById('hnn').classList.add('on');showNar();if(!redis)document.getElementById('arh').style.display='flex'}
+}
+
+function M(id,cls,v,vc,unit,bw){
+  const el=document.getElementById('m'+id);
+  el.className='mt'+(cls?' '+cls:'');
+  const ve=document.getElementById('v'+id);
+  ve.className='mv'+(vc?' '+vc:'');ve.textContent=v;
+  const bar=document.getElementById(id+'b');
+  if(bar){bar.className='bf'+(vc?' '+vc:'');bar.style.width=bw+'%'}
+}
+function N(id,cls,sid,st){
+  document.getElementById('n'+id).className='nb '+cls;
+  document.getElementById('s'+id).textContent=st;
+}
+function C(id,cls){document.getElementById('c'+id).className='cl '+cls}
+
+function healthy(){
+  N('pg','ok','p','2% cpu');N('a','ok','a','8% cpu');N('c','ok','c','healthy');
+  M('lat','gg','34','g','ms',4);M('err','gg','0.0','g','%',0);M('cpu','gg','2','g','%',2,'cpub');
+  C('2','');C('1','act');
+  document.getElementById('arh').style.display='none';
+}
+function warn(){
+  N('pg','warn','p','52% cpu');
+  M('lat','aa','210','a','ms',25);M('err','','0.3','','%',0);M('cpu','aa','52','a','%',52);
+  C('2','hot');
+}
+function broken(){
+  N('pg','crit','p','94% cpu 🔴');N('a','ok','a','23% cpu');
+  M('lat','rr','847','r','ms',95);M('err','rr','3.2','r','%',0);M('cpu','rr','94','r','%',94);
+  C('2','hot');C('1','act');
+}
+
+function addRedis(){
+  redis=true;
+  document.getElementById('arh').style.display='none';
+  document.getElementById('rb').classList.add('on');
+  document.getElementById('mhit').style.display='flex';
+  document.getElementById('c2l').textContent='cache miss';
+  C('2','teal');
+  setTimeout(()=>{
+    N('pg','ok','p','12% cpu');N('a','ok','a','19% cpu');
+    M('lat','gg','8','g','ms',1);M('err','gg','0.0','g','%',0);M('cpu','gg','12','g','%',12);
+    document.getElementById('vcost').textContent='$55';
+    addM('ai','Redis is absorbing <code>91%</code> of reads. DB CPU dropped 94% → 12%. Click any node to inspect internals.\n\nNow — do you see any risk with this setup?');
+    document.getElementById('hints').innerHTML=`
+      <div class="hnt" onclick="sh('what happens when all the TTLs expire at the same time')">ttl expiry?</div>
+      <div class="hnt" onclick="sh('thundering herd when cache expires all at once')">thundering herd</div>
+      <div class="hnt" onclick="sh('we need ttl jitter to spread out expiry')">ttl jitter</div>`;
+  },700);
+}
+
+function showNar(){
+  const n=document.getElementById('nar');
+  n.classList.add('on');setTimeout(()=>n.classList.remove('on'),5000);
+}
+
+// ── chat ──
+const FLOW=[
+  {t:['db','database','postgres','connection','overload','hammer'],r:'Right — Postgres is handling every request. Click it to see the connection pool. What specifically happens for <code>every single redirect</code>?'},
+  {t:['read','same','repeated','duplicate','over and over','lookup','query'],r:'Exactly. 91% of reads are the same URLs over and over. What could answer that question <strong>without touching Postgres</strong>?'},
+  {t:['cache','redis','memory','memcach','store','layer','in-memory'],r:'Good instinct. Click <strong>+ redis cache</strong> on the diagram to add it. What TTL would you set for redirects?',add:true},
+  {t:['ttl','minute','second','expire','5','duration'],r:'5 minutes is reasonable. Most URLs are static. Adding Redis now…',go:true},
+  {t:['thundering','herd','expire','expiry','same time','all','simultaneous','flood','mass'],r:'That is the <strong>thundering herd</strong>. When the top URL\'s TTL expires, 14,000 requests simultaneously flood Postgres. The fix: <code>TTL jitter</code> — randomise expiry ±30% so entries never all expire together.\n\nReady for Tier 3?'},
+];
+
+function addM(who,html){
+  const c=document.getElementById('chat');
+  const d=document.createElement('div');d.className='cm';
+  d.innerHTML=`<div class="cw ${who}">${who==='ai'?'systemcraft':'you'}</div><div class="cb ${who}">${html.replace(/\n/g,'<br>')}</div>`;
+  c.appendChild(d);c.scrollTop=c.scrollHeight;
+}
+
+function sh(t){document.getElementById('ci').value=t;send()}
+function send(){
+  const el=document.getElementById('ci'),txt=el.value.trim();if(!txt)return;
+  el.value='';addM('user',txt);
+  const low=txt.toLowerCase();
+  let hit=null;
+  for(const r of FLOW){if(r.t.some(k=>low.includes(k))){hit=r;break}}
+  setTimeout(()=>{
+    if(hit){
+      addM('ai',hit.r);
+      if(hit.add&&!redis)document.getElementById('arh').style.display='flex';
+      if(hit.go&&!redis)addRedis();
+      if(hit.go&&redis)setTimeout(()=>document.getElementById('adv').classList.add('on'),800);
+    } else {
+      addM('ai','Tell me more. Click <code>postgres</code> to see what\'s happening inside — what do those numbers suggest?');
+    }
+  },500);
+}
+
+// ── modals ──
+const MD={
+  postgres:{t:'postgres internals — live',h:`
+<div class="is"><div class="ih">connection pool</div>
+<div class="ir2"><span class="ik">connections</span><span class="iv r">98 / 100</span></div>
+<div class="bw" style="margin:6px 0 10px"><div class="bf r" style="width:98%"></div></div>
+<div class="ir2"><span class="ik">queries waiting</span><span class="iv r">47</span></div>
+<div class="ir2"><span class="ik">avg wait</span><span class="iv r">847ms</span></div>
+</div>
+<div class="is"><div class="ih">hot query</div>
+<div class="cod"><span class="h">SELECT</span> url <span class="h">FROM</span> urls<br><span class="h">WHERE</span> short_code = <span class="a">'abc123'</span><br><br>running: <span class="g">53</span> &nbsp; waiting: <span class="r">47</span><br>avg duration: <span class="r">847ms ⚠</span></div>
+</div>
+<div class="is"><div class="ih">index</div>
+<div class="ir2"><span class="ik">short_code_idx</span><span class="iv tl">B-tree ✓</span></div>
+<div class="ir2"><span class="ik">rows scanned / query</span><span class="iv g">1</span></div>
+<div class="ir2"><span class="ik">cpu pressure</span><span class="iv r">94% — bottleneck is connections, not index</span></div>
+</div>`},
+  redis:{t:'redis internals — live',h:`
+<div class="is"><div class="ih">keyspace</div>
+<div class="ir2"><span class="ik">abc123</span><span class="iv">google.com &nbsp;<span style="color:var(--t3)">ttl 4m 12s</span></span></div>
+<div class="ir2"><span class="ik">xyz789</span><span class="iv">github.com &nbsp;<span style="color:var(--t3)">ttl 2m 04s</span></span></div>
+<div class="ir2"><span class="ik">mn2k91</span><span class="iv">ycombinator.com &nbsp;<span style="color:var(--t3)">ttl 4m 58s</span></span></div>
+<div class="ir2"><span class="ik">pq4r7x</span><span class="iv">techcrunch.com &nbsp;<span style="color:var(--t3)">ttl 1m 33s</span></span></div>
+</div>
+<div class="is"><div class="ih">throughput</div>
+<div class="ir2"><span class="ik">GET / sec</span><span class="iv g">41,200</span></div>
+<div class="ir2"><span class="ik">SET / sec</span><span class="iv">3,100</span></div>
+<div class="ir2"><span class="ik">hit ratio</span><span class="iv tl">91%</span></div>
+<div class="bw" style="margin-top:6px"><div class="bf tl" style="width:91%"></div></div>
+</div>
+<div class="is"><div class="ih">memory</div>
+<div class="ir2"><span class="ik">used</span><span class="iv">234 MB / 512 MB</span></div>
+<div class="ir2"><span class="ik">eviction</span><span class="iv">allkeys-lru</span></div>
+</div>`},
+  app:{t:'app server internals',h:`
+<div class="is"><div class="ih">process</div>
+<div class="ir2"><span class="ik">workers</span><span class="iv">4</span></div>
+<div class="ir2"><span class="ik">req / sec</span><span class="iv g">1,157</span></div>
+<div class="ir2"><span class="ik">cpu</span><span class="iv g">23%</span></div>
+<div class="ir2"><span class="ik">memory</span><span class="iv g">180 MB</span></div>
+</div>
+<div class="is"><div class="ih">request flow (cache on)</div>
+<div class="cod">1. GET /r/abc123<br>2. Check Redis → <span class="h">HIT (91%)</span><br>3. Return 301 → 8ms<br><br><span style="color:var(--t3)">on miss (9%):</span><br>2b. Query Postgres<br>3b. SET redis key (ttl 5min)<br>4b. Return 301</div>
+</div>`},
+  client:{t:'client traffic profile',h:`
+<div class="is"><div class="ih">traffic</div>
+<div class="ir2"><span class="ik">req / day</span><span class="iv">100,000</span></div>
+<div class="ir2"><span class="ik">peak req / s</span><span class="iv">1,157</span></div>
+<div class="ir2"><span class="ik">unique short codes</span><span class="iv a">~340 active</span></div>
+<div class="ir2"><span class="ik">read : write</span><span class="iv">10,000 : 1</span></div>
+</div>
+<div class="is"><div class="ih">why caching works here</div>
+<div class="cod">Top 1% of URLs → <span class="h">60% of traffic</span><br><br>Same codes hit repeatedly.<br>Cache once, serve thousands<br>from memory at 0.1ms.</div>
+</div>`}
+};
+
+function openM(k){
+  const m=MD[k];if(!m)return;
+  document.getElementById('mt2').textContent=m.t;
+  document.getElementById('mb').innerHTML=m.h;
+  document.getElementById('mo').classList.add('on');
+}
+function closeM(){document.getElementById('mo').classList.remove('on')}
+function maybeClose(e){if(e.target===document.getElementById('mo'))closeM()}
+
+// ── landing ──
+function setTab(t){
+  ['concept','scenario'].forEach(k=>{
+    document.getElementById('tab-'+k).classList.toggle('on',k===t);
+    document.getElementById('view-'+k).style.display=k===t?'block':'none';
+  });
+}
+
+function launch(concept,scenario,state){
+  // update topbar tags to reflect selection
+  const scenarioLabels={
+    url_shortener:'url-shortener',write_scaling:'write-scaling',
+    fan_out:'fan-out',rate_limiting:'rate-limiting',
+    blob_store:'blob-store',stream_proc:'stream-processing',
+    search:'search',consistency:'consistency'
+  };
+  document.querySelector('.tag').textContent=scenarioLabels[scenario]||scenario;
+  document.querySelectorAll('.tag')[1].textContent=concept.replace(/-/g,' ');
+  // transition
+  document.getElementById('land').classList.add('gone');
+  // boot simulator after transition
+  setTimeout(()=>{
+    document.getElementById('tsl').value=7;
+    onT(7);
+  },460);
+}
+
+// show landing on load (don't auto-boot simulator)
+// boot only happens after launch() is called
+</script>
+</body>
+</html>
