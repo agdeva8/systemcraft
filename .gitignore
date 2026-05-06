@@ -3,6 +3,9 @@
 knowledge-base/**/*.html
 knowledge-base/index.html
 
+# IDE
+.idea/
+
 # macOS
 .DS_Store
 
