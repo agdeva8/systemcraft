@@ -4,9 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SystemCraft</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0c0c10;--s1:#111117;--s2:#17171f;--s3:#1e1e28;--s4:#252530;
+  --b1:#252530;--b2:#30303e;--b3:#3d3d52;
+  --t1:#e4e4f0;--t2:#8080a8;--t3:#4a4a66;
+  --green:#34d399;--gd:rgba(52,211,153,.1);
+  --red:#f87171;--rd:rgba(248,113,113,.12);
+  --amber:#fbbf24;--ad:rgba(251,191,36,.1);
+  --teal:#38bdf8;--td:rgba(56,189,248,.1);
+  --acc:#818cf8;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'Inter',-apple-system,sans-serif;
+  --disp:'Inter',-apple-system,sans-serif;
+}
+
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:var(--sans)}
 
 /* ═══ LANDING OVERLAY ═══ */
 .land{
@@ -19,109 +35,98 @@
 .land.gone{opacity:0;transform:translateY(-18px);pointer-events:none}
 
 .lh{
-  flex-shrink:0;padding:22px 40px;
-  display:flex;align-items:center;gap:14px;
+  flex-shrink:0;padding:20px 40px;
+  display:flex;align-items:center;gap:16px;
   border-bottom:1px solid var(--b1);
 }
-.llogo{font-size:20px;font-weight:700;color:var(--acc);letter-spacing:-.03em;font-family:var(--disp)}
-.llogo b{color:var(--t3);font-weight:500}
-.ltag{font-family:var(--mono);font-size:10px;color:var(--t3);margin-left:auto}
+.llogo{font-size:18px;font-weight:700;color:var(--acc);letter-spacing:-.02em;font-family:var(--disp)}
+.llogo b{color:var(--t3);font-weight:400}
+.ltag{font-family:var(--sans);font-size:12px;color:var(--t3);margin-left:auto;font-weight:400}
 
 .ltabs{
-  display:flex;gap:0;
+  display:flex;gap:2px;
   background:var(--s2);border:1px solid var(--b2);
-  border-radius:8px;overflow:hidden;flex-shrink:0;
+  border-radius:8px;overflow:hidden;flex-shrink:0;padding:3px;
 }
 .ltab{
-  font-family:var(--mono);font-size:11px;
-  padding:7px 18px;cursor:pointer;color:var(--t3);
+  font-family:var(--sans);font-size:12px;font-weight:500;
+  padding:6px 16px;cursor:pointer;color:var(--t3);
   transition:background .15s,color .15s;border:none;background:none;
+  border-radius:6px;
 }
-.ltab.on{background:var(--b2);color:var(--acc)}
+.ltab.on{background:var(--s4);color:var(--t1)}
 
-.lbody{flex:1;overflow-y:auto;padding:28px 40px;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
+.lbody{flex:1;overflow-y:auto;padding:32px 40px;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
 
 /* concept view */
-.cgroup{margin-bottom:32px}
+.cgroup{margin-bottom:36px}
 .cgtitle{
-  font-family:var(--mono);font-size:9px;text-transform:uppercase;
-  letter-spacing:.12em;color:var(--t3);margin-bottom:12px;
-  padding-bottom:8px;border-bottom:1px solid var(--b1);
+  font-family:var(--sans);font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--t3);margin-bottom:14px;
+  padding-bottom:10px;border-bottom:1px solid var(--b1);
 }
-.cgrid{display:flex;flex-wrap:wrap;gap:8px}
+.cgrid{display:flex;flex-wrap:wrap;gap:10px}
 
 .ccard{
-  padding:10px 14px;border-radius:8px;
+  padding:14px 18px;border-radius:10px;
   background:var(--s2);border:1px solid var(--b2);
-  cursor:pointer;transition:border-color .15s,background .15s,transform .1s;
-  display:flex;flex-direction:column;gap:4px;min-width:160px;
+  cursor:pointer;transition:border-color .15s,background .15s,transform .12s,box-shadow .15s;
+  display:flex;flex-direction:column;gap:5px;min-width:170px;
 }
-.ccard:hover{border-color:var(--acc);background:rgba(126,255,212,.04);transform:translateY(-1px)}
-.cc-title{font-family:var(--mono);font-size:11px;color:var(--t1)}
-.cc-sub{font-family:var(--mono);font-size:9px;color:var(--t3)}
+.ccard:hover{border-color:rgba(129,140,248,.4);background:rgba(129,140,248,.04);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.cc-title{font-family:var(--sans);font-size:13px;font-weight:500;color:var(--t1)}
+.cc-sub{font-family:var(--sans);font-size:11px;color:var(--t2);line-height:1.4}
 .cc-tag{
-  display:inline-block;margin-top:3px;
-  font-family:var(--mono);font-size:8px;
-  padding:2px 7px;border-radius:10px;
+  display:inline-block;margin-top:4px;
+  font-family:var(--mono);font-size:9px;
+  padding:3px 8px;border-radius:20px;
   background:var(--s3);border:1px solid var(--b2);color:var(--t3);
+  width:fit-content;
 }
 
 /* scenario view */
-.sgrid{display:flex;flex-direction:column;gap:10px}
+.sgrid{display:flex;flex-direction:column;gap:12px}
 .scard{
-  padding:14px 18px;border-radius:8px;
+  padding:16px 20px;border-radius:10px;
   background:var(--s2);border:1px solid var(--b2);
-  cursor:pointer;transition:border-color .15s,background .15s;
-  display:flex;align-items:center;gap:14px;
+  cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s;
+  display:flex;align-items:center;gap:16px;
 }
-.scard:hover{border-color:rgba(126,255,212,.3);background:rgba(126,255,212,.03)}
-.sc-icon{font-size:22px;flex-shrink:0;width:36px;text-align:center}
+.scard:hover{border-color:rgba(129,140,248,.3);background:rgba(129,140,248,.03);box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.sc-icon{font-size:24px;flex-shrink:0;width:38px;text-align:center}
 .sc-info{flex:1}
-.sc-name{font-family:var(--disp);font-size:13px;color:var(--t1);margin-bottom:3px}
-.sc-vehicle{font-family:var(--mono);font-size:9px;color:var(--t3);margin-bottom:5px}
-.sc-concepts{display:flex;flex-wrap:wrap;gap:4px}
+.sc-name{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--t1);margin-bottom:3px}
+.sc-vehicle{font-family:var(--sans);font-size:11px;color:var(--t2);margin-bottom:8px}
+.sc-concepts{display:flex;flex-wrap:wrap;gap:5px}
 .sc-ct{
-  font-family:var(--mono);font-size:8px;
-  padding:2px 7px;border-radius:10px;
+  font-family:var(--mono);font-size:9px;
+  padding:3px 8px;border-radius:20px;
   background:var(--s3);border:1px solid var(--b2);color:var(--t3);
 }
-.sc-arrow{font-family:var(--mono);font-size:12px;color:var(--t3);flex-shrink:0}
-:root{
-  --bg:#07090c;--s1:#0d1117;--s2:#131920;--s3:#18202a;--s4:#1e2836;
-  --b1:#1c2532;--b2:#243040;--b3:#2d3d52;
-  --t1:#d4dce8;--t2:#7090b0;--t3:#405060;
-  --green:#1fd888;--gd:rgba(31,216,136,.1);
-  --red:#f05050;--rd:rgba(240,80,80,.12);
-  --amber:#f0a030;--ad:rgba(240,160,48,.1);
-  --teal:#2dd4bf;--td:rgba(45,212,191,.1);
-  --acc:#7effd4;
-  --mono:'IBM Plex Mono',monospace;
-  --disp:'Syne',sans-serif;
-}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-family:var(--disp)}
+.sc-arrow{font-family:var(--sans);font-size:16px;color:var(--t3);flex-shrink:0}
 
 /* ═══ SHELL ═══ */
 .shell{display:flex;flex-direction:column;height:100vh;min-height:0}
 
 /* ═══ TOPBAR ═══ */
 .tb{
-  height:50px;flex-shrink:0;
+  height:52px;flex-shrink:0;
   background:var(--s1);border-bottom:1px solid var(--b1);
-  display:flex;align-items:center;padding:0 20px;gap:14px;
+  display:flex;align-items:center;padding:0 22px;gap:14px;
 }
-.logo{font-size:16px;font-weight:700;color:var(--acc);letter-spacing:-.03em;font-family:var(--disp)}
-.logo b{color:var(--t3);font-weight:500}
+.logo{font-size:16px;font-weight:700;color:var(--acc);letter-spacing:-.02em;font-family:var(--disp)}
+.logo b{color:var(--t3);font-weight:400}
 .tag{
-  font-family:var(--mono);font-size:10px;
-  padding:3px 9px;border-radius:20px;
+  font-family:var(--sans);font-size:11px;font-weight:500;
+  padding:4px 10px;border-radius:20px;
   background:var(--s3);border:1px solid var(--b2);color:var(--t2);
 }
-.tag.hi{color:var(--acc);background:rgba(126,255,212,.05);border-color:rgba(126,255,212,.2)}
-.tiers{margin-left:auto;display:flex;align-items:center;gap:5px}
-.tp{width:30px;height:3px;border-radius:2px;background:var(--b2);transition:background .4s}
+.tag.hi{color:var(--acc);background:rgba(129,140,248,.08);border-color:rgba(129,140,248,.25)}
+.tiers{margin-left:auto;display:flex;align-items:center;gap:6px}
+.tp{width:28px;height:3px;border-radius:2px;background:var(--b2);transition:background .4s}
 .tp.done{background:var(--green)}
-.tp.now{background:var(--acc);box-shadow:0 0 8px rgba(126,255,212,.5)}
-.tier-txt{font-family:var(--mono);font-size:10px;color:var(--t3);margin-right:4px}
+.tp.now{background:var(--acc);box-shadow:0 0 8px rgba(129,140,248,.5)}
+.tier-txt{font-family:var(--sans);font-size:11px;font-weight:500;color:var(--t3);margin-right:4px}
 
 /* ═══ BODY ═══ */
 .body{flex:1;display:flex;min-height:0;overflow:hidden}
@@ -136,8 +141,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 }
 .dg::before{
   content:'';position:absolute;inset:0;
-  background-image:radial-gradient(var(--b1) 1px,transparent 1px);
-  background-size:24px 24px;pointer-events:none;
+  background-image:radial-gradient(rgba(129,140,248,.07) 1px,transparent 1px);
+  background-size:28px 28px;pointer-events:none;
 }
 
 .arch{
@@ -147,44 +152,44 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 }
 
 /* node */
-.nw{display:flex;flex-direction:column;align-items:center;gap:7px;position:relative;z-index:2}
+.nw{display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;z-index:2}
 .nb{
-  width:108px;height:70px;border-radius:10px;
+  width:112px;height:74px;border-radius:12px;
   background:var(--s2);border:1px solid var(--b2);
   display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:4px;cursor:pointer;
+  justify-content:center;gap:5px;cursor:pointer;
   position:relative;overflow:hidden;
   transition:transform .15s,border-color .35s,box-shadow .35s;
 }
 .nb::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;transition:background .35s}
 .nb:hover{transform:translateY(-2px)}
 .nb:hover .ck{opacity:1}
-.ck{position:absolute;top:5px;right:7px;font-family:var(--mono);font-size:8px;color:var(--t3);opacity:0;transition:opacity .2s}
-.ni{font-size:20px;line-height:1}
+.ck{position:absolute;top:6px;right:8px;font-family:var(--sans);font-size:9px;font-weight:500;color:var(--t3);opacity:0;transition:opacity .2s}
+.ni{font-size:22px;line-height:1}
 .nn{font-family:var(--mono);font-size:10px;color:var(--t2)}
-.ns{font-family:var(--mono);font-size:9px;transition:color .35s}
-.nl{font-family:var(--mono);font-size:9px;color:var(--t3);text-align:center;max-width:120px}
+.ns{font-family:var(--sans);font-size:11px;font-weight:500;transition:color .35s}
+.nl{font-family:var(--sans);font-size:11px;color:var(--t3);text-align:center;max-width:120px}
 
 /* state classes */
-.nb.ok{border-color:rgba(31,216,136,.25)}
+.nb.ok{border-color:rgba(52,211,153,.2)}
 .nb.ok::after{background:var(--green)}
 .nb.ok .ns{color:var(--green)}
 
-.nb.warn{border-color:rgba(240,160,48,.3);box-shadow:0 0 18px rgba(240,160,48,.08)}
+.nb.warn{border-color:rgba(251,191,36,.3);box-shadow:0 0 20px rgba(251,191,36,.07)}
 .nb.warn::after{background:var(--amber)}
 .nb.warn .ns{color:var(--amber)}
 
-.nb.crit{border-color:rgba(240,80,80,.4);box-shadow:0 0 24px rgba(240,80,80,.12);animation:crit 1.8s ease-in-out infinite}
+.nb.crit{border-color:rgba(248,113,113,.4);box-shadow:0 0 24px rgba(248,113,113,.12);animation:crit 1.8s ease-in-out infinite}
 .nb.crit::after{background:var(--red)}
 .nb.crit .ns{color:var(--red)}
 
-.nb.tl{border-color:rgba(45,212,191,.3);box-shadow:0 0 16px rgba(45,212,191,.08)}
+.nb.tl{border-color:rgba(56,189,248,.3);box-shadow:0 0 16px rgba(56,189,248,.08)}
 .nb.tl::after{background:var(--teal)}
 .nb.tl .ns{color:var(--teal)}
 
 .nb.dim{opacity:.3;pointer-events:none}
 
-@keyframes crit{0%,100%{box-shadow:0 0 24px rgba(240,80,80,.12)}50%{box-shadow:0 0 36px rgba(240,80,80,.28)}}
+@keyframes crit{0%,100%{box-shadow:0 0 24px rgba(248,113,113,.12)}50%{box-shadow:0 0 40px rgba(248,113,113,.26)}}
 
 /* connectors */
 .cn{display:flex;align-items:center;flex-shrink:0;position:relative}
@@ -199,13 +204,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
   border-left:5px solid var(--b3);
   transition:border-left-color .35s;
 }
-.cl.act{background:rgba(126,255,212,.5)}
-.cl.act::after{border-left-color:rgba(126,255,212,.5)}
-.cl.hot{background:rgba(240,80,80,.6)}
-.cl.hot::after{border-left-color:rgba(240,80,80,.6)}
-.cl.teal{background:rgba(45,212,191,.5)}
-.cl.teal::after{border-left-color:rgba(45,212,191,.5)}
-.clb{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9px;color:var(--t3);white-space:nowrap}
+.cl.act{background:rgba(129,140,248,.5)}
+.cl.act::after{border-left-color:rgba(129,140,248,.5)}
+.cl.hot{background:rgba(248,113,113,.6)}
+.cl.hot::after{border-left-color:rgba(248,113,113,.6)}
+.cl.teal{background:rgba(56,189,248,.5)}
+.cl.teal::after{border-left-color:rgba(56,189,248,.5)}
+.clb{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:9px;color:var(--t3);white-space:nowrap}
 
 /* redis branch */
 .rb{
@@ -215,15 +220,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
   transition:opacity .5s,transform .5s;pointer-events:none;
 }
 .rb.on{opacity:1;transform:none;pointer-events:all}
-.vl{width:1px;height:26px;background:rgba(45,212,191,.4)}
+.vl{width:1px;height:28px;background:rgba(56,189,248,.4)}
 
 /* add redis */
 .arn{
-  width:108px;height:70px;border-radius:10px;
+  width:112px;height:74px;border-radius:12px;
   border:1px dashed var(--b3);background:transparent;
   display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:4px;cursor:pointer;
-  font-family:var(--mono);font-size:10px;color:var(--t3);
+  justify-content:center;gap:5px;cursor:pointer;
+  font-family:var(--sans);font-size:11px;font-weight:500;color:var(--t3);
   transition:border-color .2s,color .2s,background .2s;
 }
 .arn:hover{border-color:var(--teal);color:var(--teal);background:var(--td)}
@@ -232,10 +237,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 .nar{
   position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
   background:var(--s3);border:1px solid var(--b2);
-  border-radius:8px;padding:9px 18px;
-  font-family:var(--mono);font-size:11px;color:var(--t2);
+  border-radius:10px;padding:10px 20px;
+  font-family:var(--sans);font-size:12px;color:var(--t2);
   white-space:nowrap;z-index:5;
   opacity:0;transition:opacity .4s;pointer-events:none;
+  box-shadow:0 4px 24px rgba(0,0,0,.4);
 }
 .nar b{color:var(--amber)}
 .nar.on{opacity:1}
@@ -249,7 +255,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 
 .mt{
   flex:1;display:flex;flex-direction:column;justify-content:center;
-  padding:14px 18px;border-right:1px solid var(--b1);
+  padding:16px 20px;border-right:1px solid var(--b1);
   position:relative;overflow:hidden;transition:background .4s;
 }
 .mt.rr{background:var(--rd)}
@@ -257,24 +263,24 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t1);font-
 .mt.aa{background:var(--ad)}
 .mt.tt{background:var(--td)}
 
-.mk{font-family:var(--mono);font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
-.mv{font-family:var(--mono);font-size:26px;font-weight:500;line-height:1;color:var(--t1);transition:color .4s}
+.mk{font-family:var(--sans);font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.mv{font-family:var(--mono);font-size:28px;font-weight:500;line-height:1;color:var(--t1);transition:color .4s}
 .mv.r{color:var(--red)}.mv.g{color:var(--green)}.mv.a{color:var(--amber)}.mv.tl{color:var(--teal)}
-.mu{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:3px}
+.mu{font-family:var(--sans);font-size:11px;color:var(--t3);margin-top:4px}
 
-.bw{height:3px;background:var(--b2);border-radius:2px;overflow:hidden;margin-top:10px}
+.bw{height:3px;background:var(--b2);border-radius:2px;overflow:hidden;margin-top:12px}
 .bf{height:100%;border-radius:2px;transition:width 1s ease}
 .bf.r{background:var(--red)}.bf.g{background:var(--green)}.bf.tl{background:var(--teal)}.bf.a{background:var(--amber)}
 
 /* traffic block */
 .trb{
-  width:196px;flex-shrink:0;
+  width:200px;flex-shrink:0;
   display:flex;flex-direction:column;justify-content:center;
-  padding:14px 18px;border-right:1px solid var(--b1);
+  padding:16px 20px;border-right:1px solid var(--b1);
 }
-.trr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
-.trt{font-family:var(--mono);font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.09em}
-.trn{font-family:var(--mono);font-size:11px;color:var(--t2)}
+.trr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.trt{font-family:var(--sans);font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.08em}
+.trn{font-family:var(--mono);font-size:12px;color:var(--t2)}
 
 input[type=range]{
   width:100%;height:3px;-webkit-appearance:none;
@@ -283,124 +289,284 @@ input[type=range]{
 input[type=range]::-webkit-slider-thumb{
   -webkit-appearance:none;width:14px;height:14px;
   border-radius:50%;background:var(--acc);cursor:pointer;
-  box-shadow:0 0 8px rgba(126,255,212,.4);
+  box-shadow:0 0 8px rgba(129,140,248,.5);
   transition:transform .1s;
 }
 input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
 
 .hn{
-  margin-top:10px;font-family:var(--mono);font-size:9px;
-  color:var(--amber);line-height:1.5;
+  margin-top:10px;font-family:var(--sans);font-size:10px;
+  color:var(--amber);line-height:1.6;
   opacity:0;transition:opacity .4s;
 }
 .hn.on{opacity:1}
 
+/* ─── INTERACTIVE LAYER (terminal + code panel) ─── */
+.ilay{
+  height:230px;flex-shrink:0;
+  background:var(--s1);border-top:1px solid var(--b1);
+  display:flex;overflow:hidden;
+}
+
+/* terminal pane */
+.tp-wrap{
+  flex:1;display:flex;flex-direction:column;min-width:0;
+  border-right:1px solid var(--b1);
+}
+.tp-tabs{
+  height:34px;flex-shrink:0;
+  display:flex;align-items:stretch;
+  background:var(--s2);border-bottom:1px solid var(--b1);
+}
+.tp-tab{
+  font-family:var(--sans);font-size:11px;font-weight:500;
+  padding:0 16px;border:none;background:none;
+  color:var(--t3);cursor:pointer;
+  border-right:1px solid var(--b1);
+  transition:background .15s,color .15s;
+  display:flex;align-items:center;gap:5px;
+}
+.tp-tab.on{background:var(--bg);color:var(--acc);border-bottom:2px solid var(--acc);margin-bottom:-1px;}
+.tp-tab:hover:not(.on){color:var(--t2);background:var(--s3)}
+.tp-cs-btn{
+  margin-left:auto;font-family:var(--sans);font-size:10px;font-weight:500;
+  padding:0 14px;border:none;background:none;
+  color:var(--t3);cursor:pointer;transition:color .15s;
+}
+.tp-cs-btn:hover{color:var(--acc)}
+
+.tp-body{
+  flex:1;position:relative;overflow:hidden;
+  background:var(--bg);
+}
+.term-out{
+  position:absolute;inset:0;
+  overflow-y:auto;overflow-x:hidden;
+  padding:10px 14px;
+  font-family:var(--mono);font-size:11px;line-height:1.75;
+  color:#b0b8c8;
+  scrollbar-width:thin;scrollbar-color:var(--b2) transparent;
+}
+.term-out .prompt{color:var(--acc);}
+.term-out .cmd{color:var(--t1);}
+.term-out .ok{color:var(--green);}
+.term-out .err{color:var(--red);}
+.term-out .dim{color:var(--t3);}
+.term-out .amber{color:var(--amber);}
+.term-out .tl{color:var(--teal);}
+.term-out table{border-collapse:collapse;margin:2px 0 4px}
+.term-out td{padding:0 14px 0 0;}
+.term-out .sep{color:var(--b3);letter-spacing:-.05em;}
+
+.term-input-row{
+  flex-shrink:0;height:28px;
+  display:flex;align-items:center;
+  background:var(--bg);border-top:1px solid var(--b1);
+  padding:0 8px;gap:6px;
+}
+.term-prompt-label{font-family:var(--mono);font-size:11px;color:var(--acc);flex-shrink:0;}
+.term-input{
+  flex:1;background:none;border:none;outline:none;
+  font-family:var(--mono);font-size:11px;color:var(--t1);
+  caret-color:var(--acc);
+}
+.term-input::placeholder{color:var(--t3)}
+
+/* cheatsheet overlay */
+.cs-panel{
+  position:absolute;top:34px;right:0;bottom:28px;
+  width:290px;
+  background:var(--s2);border-left:1px solid var(--b2);
+  overflow-y:auto;padding:12px 14px;
+  scrollbar-width:thin;scrollbar-color:var(--b2) transparent;
+  transform:translateX(100%);transition:transform .2s;
+  z-index:10;
+}
+.cs-panel.on{transform:none}
+.cs-title{font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:12px}
+.cs-cmd{
+  padding:8px 10px;border-radius:8px;
+  background:var(--s3);border:1px solid var(--b2);
+  margin-bottom:8px;cursor:pointer;
+  transition:border-color .15s;
+}
+.cs-cmd:hover{border-color:rgba(129,140,248,.35)}
+.cs-cmd code{display:block;font-family:var(--mono);font-size:10px;color:var(--acc);margin-bottom:3px;word-break:break-all}
+.cs-cmd small{font-family:var(--sans);font-size:10px;color:var(--t3);line-height:1.4}
+
+/* code / config panel */
+.cp-wrap{
+  width:296px;flex-shrink:0;
+  display:flex;flex-direction:column;
+  border-left:1px solid var(--b1);
+}
+.cp-tabs{
+  height:34px;flex-shrink:0;
+  display:flex;align-items:stretch;
+  background:var(--s2);border-bottom:1px solid var(--b1);
+}
+.cp-tab{
+  font-family:var(--sans);font-size:11px;font-weight:500;
+  padding:0 16px;border:none;background:none;
+  color:var(--t3);cursor:pointer;
+  border-right:1px solid var(--b1);
+  transition:background .15s,color .15s;
+  display:flex;align-items:center;
+}
+.cp-tab.on{background:var(--bg);color:var(--acc);border-bottom:2px solid var(--acc);margin-bottom:-1px;}
+
+.cp-body{flex:1;overflow-y:auto;padding:12px 14px;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
+
+/* code panel — Monaco-like code display */
+.code-file{font-family:var(--mono);font-size:9px;color:var(--t3);margin-bottom:9px}
+.code-block{
+  background:var(--s3);border:1px solid var(--b2);border-radius:8px;
+  overflow:hidden;margin-bottom:12px;
+}
+.code-ln{
+  display:flex;align-items:baseline;gap:12px;
+  padding:1px 12px;
+  font-family:var(--mono);font-size:10px;line-height:1.8;
+}
+.code-ln .ln{color:var(--t3);min-width:16px;text-align:right;user-select:none;font-size:9px}
+.code-ln .lc{color:var(--t2)}
+.code-ln.hl{background:rgba(248,113,113,.1);border-left:2px solid var(--red)}
+.code-ln.hl .lc{color:var(--t1)}
+.code-kw{color:#93c5fd}.code-str{color:#86efac}.code-fn{color:#fde68a}.code-cm{color:var(--t3);font-style:italic}
+
+/* config input */
+.cfg-field{margin-bottom:14px}
+.cfg-label{font-family:var(--sans);font-size:10px;font-weight:600;color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em}
+.cfg-input-row{display:flex;gap:8px;align-items:center}
+.cfg-input{
+  flex:1;background:var(--s3);border:1px solid var(--b2);border-radius:8px;
+  padding:7px 10px;font-family:var(--mono);font-size:12px;
+  color:var(--t1);outline:none;transition:border-color .2s;
+}
+.cfg-input:focus{border-color:rgba(129,140,248,.45)}
+.cfg-apply{
+  background:rgba(129,140,248,.1);border:1px solid rgba(129,140,248,.25);
+  border-radius:8px;padding:7px 14px;
+  font-family:var(--sans);font-size:11px;font-weight:600;color:var(--acc);
+  cursor:pointer;transition:background .15s;white-space:nowrap;
+}
+.cfg-apply:hover{background:rgba(129,140,248,.2)}
+.cfg-note{font-family:var(--sans);font-size:11px;color:var(--t3);line-height:1.6;margin-top:5px}
+.cfg-ok{
+  font-family:var(--sans);font-size:11px;color:var(--green);
+  padding:8px 12px;border-radius:8px;background:rgba(52,211,153,.07);
+  border:1px solid rgba(52,211,153,.2);margin-top:10px;
+  display:none;line-height:1.5;
+}
+.cfg-ok.on{display:block}
+
 /* ─── RIGHT / SOCRATIC ─── */
 .right{
-  width:336px;flex-shrink:0;
+  width:344px;flex-shrink:0;
   display:flex;flex-direction:column;
   background:var(--s1);
 }
 .rh{
-  height:50px;flex-shrink:0;
+  height:52px;flex-shrink:0;
   border-bottom:1px solid var(--b1);
-  display:flex;align-items:center;padding:0 16px;gap:9px;
+  display:flex;align-items:center;padding:0 18px;gap:10px;
 }
 .dot{
   width:7px;height:7px;border-radius:50%;
-  background:var(--acc);box-shadow:0 0 8px rgba(126,255,212,.5);
+  background:var(--acc);box-shadow:0 0 8px rgba(129,140,248,.6);
   animation:pulse 2.5s ease-in-out infinite;
 }
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.rl{font-family:var(--mono);font-size:11px;color:var(--t2)}
-.rm{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--t3)}
+.rl{font-family:var(--sans);font-size:12px;font-weight:500;color:var(--t2)}
+.rm{margin-left:auto;font-family:var(--sans);font-size:10px;color:var(--t3)}
 
 /* chat */
-.chat{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
+.chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
 .cm{animation:fi .25s ease}
 @keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.cw{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:4px}
+.cw{font-family:var(--sans);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
 .cw.ai{color:var(--acc)}.cw.user{color:var(--t3)}
-.cb{font-size:12px;line-height:1.65;padding:9px 12px;border-radius:7px;border:1px solid var(--b2);background:var(--s2);color:var(--t1)}
-.cb.ai{background:rgba(126,255,212,.04);border-color:rgba(126,255,212,.12)}
+.cb{font-family:var(--sans);font-size:13px;line-height:1.65;padding:10px 14px;border-radius:10px;border:1px solid var(--b2);background:var(--s2);color:var(--t1)}
+.cb.ai{background:rgba(129,140,248,.05);border-color:rgba(129,140,248,.15)}
 .cb.user{background:var(--s3);border-color:var(--b3);color:var(--t2)}
-.cb code{font-family:var(--mono);font-size:10px;color:var(--acc);background:rgba(126,255,212,.08);padding:1px 4px;border-radius:3px}
+.cb code{font-family:var(--mono);font-size:11px;color:var(--acc);background:rgba(129,140,248,.1);padding:1px 5px;border-radius:4px}
 .cb strong{color:var(--t1);font-weight:600}
 
 /* hints */
-.hints{display:flex;flex-wrap:wrap;gap:5px;padding:0 14px 8px}
+.hints{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px}
 .hnt{
-  font-family:var(--mono);font-size:9px;
-  padding:4px 10px;border-radius:20px;
+  font-family:var(--sans);font-size:11px;font-weight:500;
+  padding:5px 12px;border-radius:20px;
   border:1px solid var(--b3);color:var(--t3);
   cursor:pointer;background:var(--s2);
-  transition:border-color .15s,color .15s;
+  transition:border-color .15s,color .15s,background .15s;
 }
-.hnt:hover{border-color:var(--acc);color:var(--acc)}
+.hnt:hover{border-color:var(--acc);color:var(--acc);background:rgba(129,140,248,.06)}
 
 /* advance badge */
 .adv{
-  margin:0 14px 8px;
-  background:rgba(31,216,136,.06);
-  border:1px solid rgba(31,216,136,.18);
-  border-radius:6px;padding:9px 12px;
-  font-family:var(--mono);font-size:10px;
+  margin:0 16px 10px;
+  background:rgba(52,211,153,.06);
+  border:1px solid rgba(52,211,153,.2);
+  border-radius:8px;padding:10px 14px;
+  font-family:var(--sans);font-size:11px;
   color:var(--green);line-height:1.6;display:none;
 }
 .adv.on{display:block}
 
 /* input */
-.ir{flex-shrink:0;display:flex;gap:7px;padding:10px 14px;border-top:1px solid var(--b1)}
+.ir{flex-shrink:0;display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--b1)}
 .ci{
   flex:1;background:var(--s2);
-  border:1px solid var(--b2);border-radius:7px;
-  padding:8px 11px;font-size:12px;
-  font-family:var(--disp);color:var(--t1);outline:none;
+  border:1px solid var(--b2);border-radius:8px;
+  padding:9px 13px;font-size:13px;
+  font-family:var(--sans);color:var(--t1);outline:none;
   transition:border-color .2s;
 }
-.ci:focus{border-color:rgba(126,255,212,.35)}
-.ci::placeholder{color:var(--t3);font-size:11px}
+.ci:focus{border-color:rgba(129,140,248,.4)}
+.ci::placeholder{color:var(--t3);font-size:12px}
 .sb{
-  background:rgba(126,255,212,.07);
-  border:1px solid rgba(126,255,212,.18);
-  border-radius:7px;padding:8px 13px;
-  font-family:var(--mono);font-size:10px;color:var(--acc);
+  background:rgba(129,140,248,.1);
+  border:1px solid rgba(129,140,248,.25);
+  border-radius:8px;padding:9px 15px;
+  font-family:var(--sans);font-size:12px;font-weight:600;color:var(--acc);
   cursor:pointer;transition:background .15s;white-space:nowrap;
 }
-.sb:hover{background:rgba(126,255,212,.14)}
+.sb:hover{background:rgba(129,140,248,.2)}
 
 /* ═══ MODAL ═══ */
 .mo{
-  position:fixed;inset:0;background:rgba(0,0,0,.8);
+  position:fixed;inset:0;background:rgba(0,0,0,.75);
   display:flex;align-items:center;justify-content:center;
   z-index:100;opacity:0;pointer-events:none;
-  transition:opacity .2s;backdrop-filter:blur(6px);
+  transition:opacity .2s;backdrop-filter:blur(8px);
 }
 .mo.on{opacity:1;pointer-events:all}
 .mw{
   background:var(--s1);border:1px solid var(--b2);
-  border-radius:12px;width:460px;
+  border-radius:14px;width:480px;
   max-height:560px;overflow:hidden;
   transform:translateY(10px) scale(.98);transition:transform .2s;
+  box-shadow:0 24px 80px rgba(0,0,0,.5);
 }
 .mo.on .mw{transform:none}
-.mh{padding:13px 17px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between}
-.mt2{font-family:var(--mono);font-size:11px;color:var(--t2)}
-.mc{background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;transition:color .15s;line-height:1;padding:0}
+.mh{padding:14px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between}
+.mt2{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--t2)}
+.mc{background:none;border:none;color:var(--t3);font-size:20px;cursor:pointer;transition:color .15s;line-height:1;padding:0}
 .mc:hover{color:var(--t1)}
-.mb{padding:17px;overflow-y:auto;max-height:490px;font-family:var(--mono);font-size:11px;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
+.mb{padding:18px;overflow-y:auto;max-height:490px;font-family:var(--sans);font-size:12px;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
 
-.is{margin-bottom:16px}
+.is{margin-bottom:18px}
 .is:last-child{margin-bottom:0}
-.ih{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--t3);margin-bottom:9px}
-.ir2{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1)}
+.ih{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px}
+.ir2{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--b1)}
 .ir2:last-child{border-bottom:none}
 .ik{color:var(--t3)}.iv{color:var(--t1)}
 .iv.r{color:var(--red)}.iv.g{color:var(--green)}.iv.a{color:var(--amber)}.iv.tl{color:var(--teal)}
 .cod{
   background:var(--s3);border:1px solid var(--b2);
-  border-radius:6px;padding:10px 12px;
-  font-size:10px;color:var(--t2);line-height:1.9;margin-top:5px;
+  border-radius:8px;padding:12px 14px;
+  font-family:var(--mono);font-size:10px;color:var(--t2);line-height:2;margin-top:6px;
 }
 .cod .h{color:var(--acc)}.cod .r{color:var(--red)}.cod .g{color:var(--green)}.cod .a{color:var(--amber)}
 
@@ -783,9 +949,9 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
 
       <!-- add redis hint -->
       <div id="arh" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-115%);display:none;flex-direction:column;align-items:center;gap:6px;">
-        <div class="nl" style="font-size:9px">↑ add to diagram</div>
+        <div class="nl" style="font-size:11px">↑ add to diagram</div>
         <div class="arn" onclick="addRedis()">
-          <div style="font-size:18px">⚡</div>
+          <div style="font-size:20px">⚡</div>
           <div>+ redis cache</div>
         </div>
       </div>
@@ -840,39 +1006,175 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
     </div>
   </div>
 
-  <!-- RIGHT: SOCRATIC -->
+  <!-- RIGHT: SOCRATIC + FIX TABS -->
   <div class="right">
-    <div class="rh">
-      <div class="dot"></div>
-      <div class="rl">diagnosis loop</div>
-      <div class="rm">claude opus</div>
-    </div>
-
-    <div class="chat" id="chat">
-      <div class="cm">
-        <div class="cw ai">systemcraft</div>
-        <div class="cb ai">Your system is struggling under load. <strong>What do you think is happening?</strong></div>
+    <div class="rh" style="padding:0;gap:0;height:auto;flex-direction:column;">
+      <div style="display:flex;align-items:stretch;border-bottom:1px solid var(--b1)">
+        <button class="cp-tab on" id="rtab-chat" onclick="setRTab('chat')" style="flex:1;justify-content:center;font-size:12px;padding:0 0 0 0;height:44px">
+          <span style="display:flex;align-items:center;gap:7px"><span class="dot" style="width:6px;height:6px"></span>diagnose</span>
+        </button>
+        <button class="cp-tab" id="rtab-fix" onclick="setRTab('fix')" style="flex:1;justify-content:center;font-size:12px;height:44px">fix config</button>
       </div>
     </div>
 
-    <div class="hints" id="hints">
-      <div class="hnt" onclick="sh('the database is getting hammered by too many reads')">db overloaded</div>
-      <div class="hnt" onclick="sh('same URLs are being read over and over hitting postgres every time')">repeated reads</div>
-      <div class="hnt" onclick="sh('we need to add a cache like redis')">add a cache</div>
+    <!-- CHAT PANEL -->
+    <div id="rpanel-chat" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+      <div class="chat" id="chat">
+        <div class="cm">
+          <div class="cw ai">systemcraft</div>
+          <div class="cb ai">Your system is struggling under load. Open the <strong>postgres</strong> terminal tab below and run <code>SELECT count(*), state FROM pg_stat_activity GROUP BY state;</code> — what do you see?</div>
+        </div>
+      </div>
+
+      <div class="hints" id="hints">
+        <div class="hnt" onclick="sh('the database is getting hammered by too many reads')">db overloaded</div>
+        <div class="hnt" onclick="sh('same URLs are being read over and over hitting postgres every time')">repeated reads</div>
+        <div class="hnt" onclick="sh('we need to add a cache like redis')">add a cache</div>
+      </div>
+
+      <div class="adv" id="adv">
+        ✓ concept: cache-aside pattern<br>
+        <span style="color:var(--t3)">watch — top URL TTL expires in ~5 min...</span>
+      </div>
+
+      <div class="ir">
+        <input class="ci" id="ci" placeholder="what do you think is happening?" onkeydown="if(event.key==='Enter')send()">
+        <button class="sb" onclick="send()">send →</button>
+      </div>
     </div>
 
-    <div class="adv" id="adv">
-      ✓ concept: cache-aside pattern<br>
-      <span style="color:var(--t3)">watch — top URL TTL expires in ~5 min...</span>
-    </div>
+    <!-- FIX PANEL -->
+    <div id="rpanel-fix" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+      <div class="cp-body" style="flex:1">
+        <div class="code-file">app/cache.py — thundering herd fix</div>
+        <div class="code-block">
+          <div class="code-ln"><span class="ln">10</span><span class="lc"><span class="code-kw">import</span> redis, random</span></div>
+          <div class="code-ln"><span class="ln">11</span><span class="lc"></span></div>
+          <div class="code-ln"><span class="ln">12</span><span class="lc"><span class="code-cm"># TTL for cached redirects (seconds)</span></span></div>
+          <div class="code-ln hl"><span class="ln">13</span><span class="lc">CACHE_TTL = <span id="ttl-display" style="color:var(--red)">300</span>  <span class="code-cm"># ← all keys expire together</span></span></div>
+          <div class="code-ln"><span class="ln">14</span><span class="lc"></span></div>
+          <div class="code-ln"><span class="ln">15</span><span class="lc"><span class="code-kw">def</span> <span class="code-fn">set_cache</span>(key, value):</span></div>
+          <div class="code-ln"><span class="ln">16</span><span class="lc">    ttl = CACHE_TTL</span></div>
+          <div class="code-ln"><span class="ln">17</span><span class="lc">    r.setex(key, ttl, value)</span></div>
+        </div>
 
-    <div class="ir">
-      <input class="ci" id="ci" placeholder="what do you think is happening?" onkeydown="if(event.key==='Enter')send()">
-      <button class="sb" onclick="send()">send →</button>
+        <div class="cfg-field">
+          <div class="cfg-label">TTL (seconds)</div>
+          <div class="cfg-input-row">
+            <input class="cfg-input" id="ttl-input" type="number" value="300" min="30" max="3600">
+            <button class="cfg-apply" onclick="applyTtl()">Apply</button>
+          </div>
+          <div class="cfg-note">Fix: use <code style="color:var(--acc);font-family:var(--mono)">random.randint(ttl*0.8, ttl*1.2)</code> — stagger expiry so keys don't all expire simultaneously.</div>
+        </div>
+
+        <div class="cfg-ok" id="cfg-ok">
+          ✓ container hot-reloaded · verify in Redis tab:<br>
+          <code style="color:var(--acc);font-family:var(--mono);font-size:10px">TTL abc123</code>
+        </div>
+
+        <div class="cfg-field" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--b1)">
+          <div class="cfg-label">DB Pool Size</div>
+          <div class="cfg-input-row">
+            <input class="cfg-input" id="pool-input" type="number" value="95" min="5" max="100">
+            <button class="cfg-apply" onclick="applyPool()">Apply</button>
+          </div>
+          <div class="cfg-note">Current: 95 / 100 connections allocated. Reducing leaves room for admin connections.</div>
+        </div>
+      </div>
     </div>
   </div>
 
 </div>
+
+<!-- INTERACTIVE LAYER: TERMINAL + CODE PANEL -->
+<div class="ilay" id="ilay">
+
+  <!-- TERMINAL PANE -->
+  <div class="tp-wrap">
+    <div class="tp-tabs">
+      <button class="tp-tab on" id="ttab-postgres" onclick="setTermTab('postgres')">postgres</button>
+      <button class="tp-tab" id="ttab-redis" onclick="setTermTab('redis')">redis</button>
+      <button class="tp-tab" id="ttab-app-logs" onclick="setTermTab('app-logs')">app-logs</button>
+      <button class="tp-cs-btn" id="cs-btn" onclick="toggleCheatsheet()">cheatsheet ▾</button>
+    </div>
+    <div class="tp-body" id="tp-body">
+
+      <!-- Postgres terminal -->
+      <div class="term-out" id="tout-postgres">
+        <div><span class="prompt">postgres=#</span> <span class="cmd">SELECT count(*), state FROM pg_stat_activity GROUP BY state;</span></div>
+        <pre class="dim"> count | state
+-------+--------
+    <span class="err">94</span>    | active
+     6   | idle
+(2 rows)</pre>
+        <div style="height:6px"></div>
+        <div><span class="prompt">postgres=#</span> <span class="cmd">SELECT query, count(*) FROM pg_stat_activity WHERE state='active' GROUP BY query ORDER BY count DESC LIMIT 3;</span></div>
+        <pre class="dim">                        query                         | count
+------------------------------------------------------+-------
+ SELECT url FROM urls WHERE short_code = <span class="amber">'abc123'</span>     |    <span class="err">67</span>
+ SELECT url FROM urls WHERE short_code = <span class="amber">'xyz789'</span>     |    <span class="err">18</span>
+ SELECT url FROM urls WHERE short_code = <span class="amber">'mn2k91'</span>     |     9
+(3 rows)</pre>
+        <div style="height:6px"></div>
+        <div><span class="prompt">postgres=#</span> <span class="cmd">SELECT count(*), wait_event FROM pg_stat_activity WHERE state='active' GROUP BY wait_event;</span></div>
+        <pre class="dim"> count | wait_event
+-------+-------------
+    <span class="err">47</span>   | <span class="err">Lock</span>
+    <span class="ok">47</span>   | (null)
+(2 rows)</pre>
+        <div><span class="prompt">postgres=#</span> <span class="dim">█</span></div>
+      </div>
+
+      <!-- Redis terminal -->
+      <div class="term-out" id="tout-redis" style="display:none">
+        <div><span class="prompt">127.0.0.1:6379&gt;</span> <span class="cmd">INFO stats</span></div>
+        <pre class="dim"># Stats
+instantaneous_ops_per_sec:<span class="err">14823</span>
+keyspace_hits:<span class="err">0</span>
+keyspace_misses:<span class="err">14823</span>
+expired_keys:340
+evicted_keys:0</pre>
+        <div style="height:6px"></div>
+        <div><span class="prompt">127.0.0.1:6379&gt;</span> <span class="cmd">TTL abc123</span></div>
+        <div><span class="ok">(integer) -2</span> <span class="dim">&nbsp;# key expired — does not exist</span></div>
+        <div style="height:6px"></div>
+        <div><span class="prompt">127.0.0.1:6379&gt;</span> <span class="cmd">KEYS *</span></div>
+        <div><span class="dim">(empty array)</span></div>
+        <div style="height:6px"></div>
+        <div><span class="prompt">127.0.0.1:6379&gt;</span> <span class="dim">█</span></div>
+      </div>
+
+      <!-- App logs terminal -->
+      <div class="term-out" id="tout-app-logs" style="display:none">
+        <div><span class="dim">$ docker logs -f sc_ab12cd34_app</span></div>
+        <div><span class="tl">INFO</span><span class="dim">:     GET /r/abc123 → 301 [<span class="err">1204ms</span>]</span></div>
+        <div><span class="tl">INFO</span><span class="dim">:     GET /r/abc123 → 301 [<span class="err">1847ms</span>]</span></div>
+        <div><span class="err">ERROR</span><span class="dim">:    GET /r/abc123 → 503 connection pool exhausted (pool_size=95, overflow=0)</span></div>
+        <div><span class="tl">INFO</span><span class="dim">:     GET /r/xyz789 → 301 [<span class="amber">612ms</span>]</span></div>
+        <div><span class="err">ERROR</span><span class="dim">:    GET /r/abc123 → 503 connection pool exhausted (pool_size=95, overflow=0)</span></div>
+        <div><span class="tl">INFO</span><span class="dim">:     GET /r/abc123 → 301 [<span class="err">2103ms</span>]</span></div>
+        <div><span class="err">ERROR</span><span class="dim">:    GET /r/mn2k91 → 503 connection pool exhausted (pool_size=95, overflow=0)</span></div>
+        <div><span class="err">ERROR</span><span class="dim">:    GET /r/abc123 → 503 connection pool exhausted (pool_size=95, overflow=0)</span></div>
+        <div><span class="tl">INFO</span><span class="dim">:     GET /r/abc123 → 301 [<span class="err">988ms</span>]</span></div>
+        <div><span class="dim">... 47 more errors in last 2s ...</span></div>
+        <div><span class="dim">█</span></div>
+      </div>
+
+      <!-- Cheatsheet overlay -->
+      <div class="cs-panel" id="cs-panel">
+        <div class="cs-title" id="cs-title">postgres — thundering herd</div>
+        <div id="cs-cmds"></div>
+      </div>
+
+    </div>
+    <div class="term-input-row">
+      <span class="term-prompt-label" id="term-prompt">postgres=#</span>
+      <input class="term-input" id="term-input" placeholder="type a command…" onkeydown="termKey(event)">
+    </div>
+  </div>
+
+</div>
+
 </div>
 
 <!-- MODAL -->
@@ -1065,7 +1367,6 @@ function setTab(t){
 }
 
 function launch(concept,scenario,state){
-  // update topbar tags to reflect selection
   const scenarioLabels={
     url_shortener:'url-shortener',write_scaling:'write-scaling',
     fan_out:'fan-out',rate_limiting:'rate-limiting',
@@ -1074,17 +1375,216 @@ function launch(concept,scenario,state){
   };
   document.querySelector('.tag').textContent=scenarioLabels[scenario]||scenario;
   document.querySelectorAll('.tag')[1].textContent=concept.replace(/-/g,' ');
-  // transition
   document.getElementById('land').classList.add('gone');
-  // boot simulator after transition
   setTimeout(()=>{
     document.getElementById('tsl').value=7;
     onT(7);
   },460);
 }
 
-// show landing on load (don't auto-boot simulator)
-// boot only happens after launch() is called
+// ── right panel tabs (diagnose / fix config) ──
+function setRTab(t){
+  ['chat','fix'].forEach(k=>{
+    document.getElementById('rtab-'+k).classList.toggle('on',k===t);
+    const p=document.getElementById('rpanel-'+k);
+    p.style.display=k===t?'flex':'none';
+  });
+}
+
+// ── terminal tabs ──
+const TERM_PROMPTS={
+  'postgres':'postgres=#',
+  'redis':'127.0.0.1:6379>',
+  'app-logs':'$'
+};
+
+const CHEATSHEETS={
+  'postgres':[
+    {label:'active connections',cmd:"SELECT count(*), state FROM pg_stat_activity GROUP BY state;",description:'shows how many connections are active vs idle'},
+    {label:'hot queries',cmd:"SELECT query, count(*) FROM pg_stat_activity WHERE state='active' GROUP BY query ORDER BY count DESC LIMIT 5;",description:'find the queries consuming connections'},
+    {label:'wait events',cmd:"SELECT count(*), wait_event FROM pg_stat_activity WHERE state='active' GROUP BY wait_event;",description:'reveals lock contention vs running queries'},
+    {label:'slow query stats',cmd:"SELECT query, calls, total_exec_time/calls AS avg_ms FROM pg_stat_statements ORDER BY avg_ms DESC LIMIT 5;",description:'requires pg_stat_statements extension'},
+    {label:'explain query',cmd:"EXPLAIN ANALYZE SELECT url FROM urls WHERE short_code = 'abc123';",description:'verify index is being used, check planning time'},
+  ],
+  'redis':[
+    {label:'ops per second',cmd:'INFO stats',description:'shows keyspace_hits, misses, instantaneous_ops_per_sec'},
+    {label:'check key TTL',cmd:'TTL abc123',description:'-2 = expired/missing, -1 = no TTL, positive = seconds remaining'},
+    {label:'list all keys',cmd:'KEYS *',description:'never run on production — safe here since this is dev'},
+    {label:'watch live commands',cmd:'MONITOR',description:'streams every command executed — good for catching thundering herd'},
+    {label:'memory usage',cmd:'INFO memory',description:'used_memory_human, mem_fragmentation_ratio'},
+  ],
+  'app-logs':[
+    {label:'follow logs',cmd:'docker logs -f sc_<session>_app',description:'tails the FastAPI app log — watch for 503 errors'},
+    {label:'filter errors',cmd:'docker logs sc_<session>_app 2>&1 | grep ERROR',description:'shows only error lines'},
+    {label:'connection errors',cmd:"docker logs sc_<session>_app 2>&1 | grep 'pool exhausted'",description:'counts connection pool saturation events'},
+  ]
+};
+
+let activeTermTab='postgres';
+let csVisible=false;
+
+function setTermTab(tab){
+  ['postgres','redis','app-logs'].forEach(t=>{
+    document.getElementById('ttab-'+t).classList.toggle('on',t===tab);
+    const out=document.getElementById('tout-'+t);
+    if(out)out.style.display=t===tab?'block':'none';
+  });
+  activeTermTab=tab;
+  document.getElementById('term-prompt').textContent=TERM_PROMPTS[tab]||'$';
+  document.getElementById('term-input').placeholder=tab==='app-logs'?'(read-only log stream)':'type a command…';
+  document.getElementById('term-input').disabled=tab==='app-logs';
+  updateCheatsheet();
+}
+
+function toggleCheatsheet(){
+  csVisible=!csVisible;
+  document.getElementById('cs-panel').classList.toggle('on',csVisible);
+  document.getElementById('cs-btn').textContent=csVisible?'cheatsheet ▴':'cheatsheet ▾';
+}
+
+function updateCheatsheet(){
+  const cmds=CHEATSHEETS[activeTermTab]||[];
+  const title=activeTermTab+' — thundering herd';
+  document.getElementById('cs-title').textContent=title;
+  const container=document.getElementById('cs-cmds');
+  container.innerHTML=cmds.map(c=>`
+    <div class="cs-cmd" onclick="pasteCmd(${JSON.stringify(c.cmd)})">
+      <code>${c.label}</code>
+      <small>${c.description}</small>
+    </div>`).join('');
+}
+
+function pasteCmd(cmd){
+  const inp=document.getElementById('term-input');
+  if(inp.disabled)return;
+  inp.value=cmd;
+  inp.focus();
+}
+
+// ── simulated terminal command execution ──
+const TERM_RESPONSES={
+  postgres:{
+    "\\\\dt":`              List of relations
+ Schema |     Name      | Type  |  Owner
+--------+---------------+-------+----------
+ public | urls          | table | postgres
+(1 row)`,
+    "select 1":`?column?
+----------
+        1
+(1 row)`,
+    "\\\\conninfo":`You are connected to database "postgres" as user "postgres" via socket in "/var/run/postgresql" at port "5432".`,
+  },
+  redis:{
+    "ping":`PONG`,
+    "dbsize":`(integer) 340`,
+    "info memory":`# Memory\r\nused_memory:245760000\r\nused_memory_human:234.38M\r\nmem_fragmentation_ratio:1.04\r\nmaxmemory:536870912\r\nmaxmemory_human:512.00M\r\nmaxmemory_policy:allkeys-lru`,
+    "info keyspace":`# Keyspace\r\n(empty — all keys expired during thundering herd)`,
+  }
+};
+
+function termKey(e){
+  if(e.key!=='Enter')return;
+  const inp=document.getElementById('term-input');
+  const raw=inp.value.trim();
+  if(!raw)return;
+  inp.value='';
+  const out=document.getElementById('tout-'+activeTermTab);
+  if(!out)return;
+
+  const cmdLine=document.createElement('div');
+  cmdLine.innerHTML=`<span class="prompt">${TERM_PROMPTS[activeTermTab]}</span> <span class="cmd">${escHtml(raw)}</span>`;
+  out.appendChild(cmdLine);
+
+  const key=raw.toLowerCase().replace(/\s+/g,' ').replace(/;$/,'');
+  const responses=TERM_RESPONSES[activeTermTab]||{};
+  let resp=null;
+  for(const [k,v] of Object.entries(responses)){
+    if(key===k||key.startsWith(k)){resp=v;break}
+  }
+
+  if(!resp){
+    if(key.includes('pg_stat_activity')&&activeTermTab==='postgres'){
+      resp=` count | state\n-------+--------\n    <span class="err">94</span>   | active\n     6   | idle\n(2 rows)`;
+    } else if(key.includes('pg_stat_statements')&&activeTermTab==='postgres'){
+      resp=`ERROR:  extension "pg_stat_statements" not loaded\nHINT:  Add pg_stat_statements to shared_preload_libraries.`;
+    } else if(key.includes('explain')&&activeTermTab==='postgres'){
+      resp=`Index Scan using idx_short_code on urls (cost=0.56..8.58 rows=1 width=54) (actual time=<span class="amber">0.423..0.423</span> rows=1 loops=1)\n  Index Cond: ((short_code)::text = 'abc123'::text)\nPlanning Time: 0.1 ms\nExecution Time: <span class="amber">0.5 ms</span>\n\nNote: query is fast — bottleneck is <span class="err">connection wait</span>, not query time.`;
+    } else if(key.includes('ttl')&&activeTermTab==='redis'){
+      if(key.includes('abc123')){
+        resp=`<span class="ok">(integer) -2</span> <span class="dim">  # expired — key does not exist (thundering herd triggered)</span>`;
+      } else {
+        resp=`<span class="ok">(integer) -2</span>`;
+      }
+    } else if(key.includes('monitor')&&activeTermTab==='redis'){
+      resp=`OK\n<span class="dim">1748302141.123456 [0 172.20.0.3:41234] "GET" "abc123"</span>\n<span class="dim">1748302141.124102 [0 172.20.0.4:41235] "GET" "abc123"</span>\n<span class="dim">1748302141.124388 [0 172.20.0.5:41236] "GET" "abc123"</span>\n<span class="dim">... (flooding — 14,823 ops/sec) ...</span>\n<span class="amber">CTRL+C to stop</span>`;
+    } else if(key.includes('keys')&&activeTermTab==='redis'){
+      resp=`<span class="dim">(empty array)</span> <span class="err">  # all keys expired</span>`;
+    } else if(key.includes('info')&&activeTermTab==='redis'){
+      resp=`# Stats\ninstantaneous_ops_per_sec:<span class="err">14823</span>\nkeyspace_hits:<span class="err">0</span>\nkeyspace_misses:<span class="err">14823</span>\nexpired_keys:340\nevicted_keys:0`;
+    } else {
+      resp=`<span class="err">ERROR</span>: unrecognized command. Try the cheatsheet →`;
+    }
+  }
+
+  const respEl=document.createElement('pre');
+  respEl.className='dim';
+  respEl.innerHTML=resp;
+  out.appendChild(respEl);
+
+  const cursor=document.createElement('div');
+  cursor.innerHTML=`<span class="prompt">${TERM_PROMPTS[activeTermTab]}</span> <span class="dim">█</span>`;
+  out.appendChild(cursor);
+
+  out.scrollTop=out.scrollHeight;
+}
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── code panel — apply TTL fix ──
+function applyTtl(){
+  const v=parseInt(document.getElementById('ttl-input').value)||300;
+  document.getElementById('ttl-display').textContent=v;
+  document.getElementById('ttl-display').style.color=
+    v>=240&&v<=360?'var(--green)':'var(--amber)';
+
+  const hl=document.querySelector('.code-ln.hl .lc');
+  if(hl){
+    const lo=Math.round(v*0.8),hi=Math.round(v*1.2);
+    hl.innerHTML=`CACHE_TTL = random.randint(${lo}, ${hi})  <span class="code-cm"># ← jitter applied</span>`;
+    hl.style.color='var(--green)';
+  }
+  document.querySelector('.code-ln.hl').style.background='rgba(52,211,153,.06)';
+  document.querySelector('.code-ln.hl').style.borderLeftColor='var(--green)';
+
+  const ok=document.getElementById('cfg-ok');
+  ok.classList.add('on');
+
+  const redisOut=document.getElementById('tout-redis');
+  if(redisOut){
+    const lo=Math.round(v*0.8),hi=Math.round(v*1.2);
+    const t1=Math.floor(Math.random()*(hi-lo)+lo);
+    const t2=Math.floor(Math.random()*(hi-lo)+lo);
+    const t3=Math.floor(Math.random()*(hi-lo)+lo);
+    const line=document.createElement('div');
+    line.innerHTML=`<span class="prompt">127.0.0.1:6379&gt;</span> <span class="cmd">TTL abc123</span>`;
+    redisOut.appendChild(line);
+    const resp=document.createElement('div');
+    resp.innerHTML=`<span class="ok">(integer) ${t1}</span>  <span class="dim"># cache rebuilding with jitter — staggered</span>`;
+    redisOut.appendChild(resp);
+    redisOut.scrollTop=redisOut.scrollHeight;
+  }
+  addM('ai',`Good. TTL jitter applied — keys now expire between ${Math.round(v*0.8)}s and ${Math.round(v*1.2)}s. Switch to the <strong>redis</strong> terminal tab and run <code>TTL abc123</code> a few times. What do you see?`);
+}
+
+function applyPool(){
+  const v=parseInt(document.getElementById('pool-input').value)||95;
+  addM('ai',`Pool size updated to ${v}. Restart the containers and check <code>pg_stat_activity</code> — how many connections are you reserving for admin access now?`);
+}
+
+updateCheatsheet();
 </script>
 </body>
 </html>
