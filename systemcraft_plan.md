@@ -19,30 +19,117 @@ The URL shortener is not the lesson. Connection pool exhaustion, cache-aside, th
 
 ## The Core Interaction Model
 
-The system starts broken. The user fixes it.
+The system starts broken. The user diagnoses and fixes it — actively, through a terminal.
 
 ```
 BOOT (pre-wired broken system)
   ↓
 OBSERVE (live metrics turn red)
   ↓
-DIAGNOSE (Socratic loop asks questions)
+TERMINAL DIAGNOSE (user runs commands in the terminal panel — pg_stat_activity, MONITOR, etc.)
   ↓
-FIX (user adds Redis, wires cache)
+CHAT HYPOTHESIS (user articulates diagnosis to Socratic loop)
+  ↓
+CODE FIX (user edits the broken config value in the code panel and hits Apply)
+  ↓
+TERMINAL VERIFY (user re-runs the same terminal commands, sees numbers improve)
   ↓
 BREAK AGAIN (thundering herd, Tier 2)
   ↓
 REPEAT
 ```
 
+The user is not a passive observer. They run commands to find the bottleneck number, form a hypothesis, edit the config, and verify the fix themselves. The diagram reflects the architecture they have built. The Socratic loop guides them to the right commands without giving answers.
+
 The diagram builds itself from user decisions. The user does not design upfront — they react to failure. By the end they have built the architecture, but they built it under pressure, which is how real systems get built.
+
+---
+
+## Interactive Layer
+
+This layer is what separates SystemCraft from a metrics dashboard. Users do not just watch — they act.
+
+### Terminal Panel (TerminalPanel.tsx + terminal_manager.py)
+
+A tabbed xterm.js terminal lives at the bottom of the simulator. Each tab is a live shell into a running container via `docker exec`, proxied over WebSocket.
+
+**Tabs per scenario (url_shortener example):**
+- `postgres` → opens `psql -U postgres` inside the Postgres container
+- `redis` → opens `redis-cli` inside the Redis container
+- `app-logs` → tails the FastAPI application log (`docker logs -f`)
+
+**Example commands a user runs to diagnose thundering herd:**
+```sql
+-- Postgres tab
+SELECT count(*), state FROM pg_stat_activity GROUP BY state;
+SELECT query, count(*), avg(total_exec_time) FROM pg_stat_statements GROUP BY query ORDER BY count DESC LIMIT 5;
+EXPLAIN ANALYZE SELECT url FROM urls WHERE short_code = 'abc123';
+```
+```
+-- Redis tab
+127.0.0.1:6379> INFO stats
+127.0.0.1:6379> TTL abc123
+127.0.0.1:6379> MONITOR
+```
+
+The terminal is read-write — users can run any command. The Socratic loop nudges them toward the right ones without giving answers.
+
+### Context-Aware Cheatsheet (Cheatsheet.tsx)
+
+A collapsible panel beside the terminal. Shows the 5–8 most relevant commands for the **current tab + current scenario state**. Updates when either changes.
+
+| Tab | State | Suggested commands |
+|-----|-------|--------------------|
+| postgres | state0_baseline | `SELECT count(*), state FROM pg_stat_activity GROUP BY state;`, `EXPLAIN ANALYZE ...`, `\dt` |
+| postgres | state2_thundering_herd | `SELECT count(*), wait_event FROM pg_stat_activity WHERE state='active' GROUP BY wait_event;` |
+| redis | any | `MONITOR`, `INFO stats`, `TTL <key>`, `KEYS *`, `DEBUG SLEEP` |
+| kafka | stream_proc | `kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --all-groups` |
+| app-logs | any | Watch for connection timeout errors, retry storms |
+
+Backend endpoint `GET /session/{id}/cheatsheet/{service}` returns the command list as JSON. Frontend renders it in Cheatsheet.tsx.
+
+### Code/Config Panel (CodePanel.tsx)
+
+A focused editor showing only the ~10 lines of code or config that are broken in the current state. The user edits a specific value and clicks "Apply". Backend templates the change and hot-reloads the affected container.
+
+**Two modes:**
+
+1. **MVP — constrained input fields**: Labeled number/text inputs for the key config value only.
+   - `TTL (seconds): [300]` with an Apply button
+   - `DB Pool Size: [95]` with an Apply button
+   - No code shown — just the knob
+
+2. **Full — Monaco-style editor**: Shows the actual broken code lines (e.g., `CACHE_TTL = 300`) highlighted in context. User edits inline. Apply triggers `POST /session/{id}/config`.
+
+**Example — thundering herd fix:**
+```python
+# app/cache.py — lines 12-18 shown
+CACHE_TTL = 300          # ← currently 300s for all URLs (highlighted red)
+
+def set_cache(key, value):
+    ttl = CACHE_TTL       # ← every key expires at the same time
+    redis_client.setex(key, ttl, value)
+```
+User changes `300` to `random.randint(240, 360)`. Hits Apply. App container reloads. User verifies via `TTL abc123` in the Redis terminal — sees staggered expiry.
+
+### Diagnostic Flow (full loop)
+
+```
+1. OBSERVE  — metrics turn red, p99 spikes, diagram node goes critical
+2. TERMINAL — user opens postgres tab, runs pg_stat_activity → sees 94 active connections
+3. HYPOTHESIS — user types in chat: "94 connections all hitting the same key at once"
+4. QUESTION — Socratic loop: "What happens to those 94 queries when the TTL hits zero simultaneously?"
+5. FIX — user opens Code panel, changes TTL from 300 to random.randint(240,360), clicks Apply
+6. VERIFY — user runs TTL abc123 in Redis terminal → sees values like 247, 312, 289 (staggered)
+7. ADVANCE — Socratic loop confirms concept, tier badge appears
+```
 
 ---
 
 ## Tech Stack
 
 ```
-Frontend:    Next.js 14 (App Router) + Tailwind + React Flow + Recharts
+Frontend:    Next.js 14 (App Router) + Tailwind + React Flow + Recharts + xterm.js
 Backend:     FastAPI (Python 3.11)
 Database:    Postgres 15 (Docker, resource-constrained)
 Cache:       Redis 7 (Docker)
@@ -63,6 +150,7 @@ Containers:  Docker Compose (one project per session)
     main.py              # FastAPI app — session orchestration
     session_manager.py   # Docker lifecycle, namespace isolation
     metrics_stream.py    # SSE stream, Prometheus scraping
+    terminal_manager.py  # WebSocket → docker exec shell per service
     internals/
       redis_parser.py        # Redis INFO → structured JSON
       postgres_parser.py     # pg_stat_activity → structured JSON
@@ -84,6 +172,9 @@ Containers:  Docker Compose (one project per session)
       TrafficDial.tsx      # Controls k6 VU count
       SocraticChat.tsx     # LLM diagnosis loop UI
       InternalsModal.tsx   # Click-to-inspect node details (tabbed per datastore)
+      TerminalPanel.tsx    # xterm.js tabbed terminals — one tab per running service (Postgres, Redis, Kafka, App Logs)
+      CodePanel.tsx        # Monaco-style editor showing ~10 lines of broken code; constrained input fields in MVP mode
+      Cheatsheet.tsx       # Context-aware command list — updates when user switches terminal tab or scenario state
     hooks/
       useMetrics.ts        # SSE consumer hook
       useSession.ts        # Session lifecycle hook
@@ -259,6 +350,32 @@ This is the most important file. Every component reads it. Write it before writi
       "path": "/session/{session_id}/traffic",
       "body": { "virtual_users": "number" },
       "response": { "ok": "boolean", "actual_rps": "number" }
+    }
+  },
+  "interactive": {
+    "terminal": {
+      "method": "GET",
+      "path": "/session/{session_id}/terminal/{service}",
+      "type": "WebSocket",
+      "note": "Upgrades to WebSocket. Proxies stdin/stdout to `docker exec -it <container> /bin/bash` (or psql/redis-cli for typed shells). service = postgres | redis | kafka | app.",
+      "params": { "service": "string — postgres | redis | kafka | app" }
+    },
+    "apply_config": {
+      "method": "POST",
+      "path": "/session/{session_id}/config",
+      "body": { "key": "string", "value": "any" },
+      "response": { "ok": "boolean", "reloaded_service": "string", "reload_ms": "number" },
+      "note": "Templates the new value into the running container's config and hot-reloads. key examples: ttl_seconds, db_pool_size, max_connections, cache_enabled."
+    },
+    "cheatsheet": {
+      "method": "GET",
+      "path": "/session/{session_id}/cheatsheet/{service}",
+      "response": {
+        "service": "string",
+        "state": "string",
+        "commands": [{ "label": "string", "cmd": "string", "description": "string" }]
+      },
+      "note": "Returns relevant commands for the current tab + state. Frontend updates Cheatsheet.tsx whenever the user switches tabs or the session state advances."
     }
   },
   "states": {
@@ -749,13 +866,25 @@ Everything else: fix it yourself and continue.
 
 The POC is complete when a person can:
 
+**Scenario-first path (full interactive loop):**
 1. Open the app in a browser
 2. See a healthy system at low traffic
 3. Drag the traffic slider to max and watch Postgres turn red
-4. Type "the database is getting hit too hard" and get a Socratic question back
-5. Click Postgres and see the real connection pool at 98/100
-6. Add Redis and watch metrics go green in real time
-7. See the thundering herd hit 4 minutes later
-8. End with a scorecard showing which concepts they understood
+4. Open the Postgres terminal tab, run `SELECT count(*), state FROM pg_stat_activity GROUP BY state;`, see 94 active connections
+5. Type "94 connections all blocked on the same hot key" and get a Socratic question back
+6. Click Postgres node and see the real connection pool at 98/100 in the internals modal
+7. Open the Code panel, add Redis config, click Apply, watch metrics go green in real time
+8. See the thundering herd hit 4 minutes later
+9. Open Redis terminal tab, run `TTL abc123`, watch the countdown hit zero and metrics spike
+10. Edit TTL to use jitter in the Code panel, Apply, verify staggered TTLs via terminal
+11. End with a scorecard showing which concepts they understood
 
-If all eight of these work, the POC is done. Ship it.
+**Concept-first path:**
+12. Browse concept catalog, click "Thundering Herd"
+13. App boots directly into `url_shortener/state2_thundering_herd` — already mid-failure
+14. KB article opens in sidebar explaining the concept
+15. Socratic loop starts with `concept_target=ttl-jitter`
+16. User follows the TERMINAL DIAGNOSE → CHAT HYPOTHESIS → CODE FIX → TERMINAL VERIFY loop
+17. Scorecard records the concept as mastered
+
+If all seventeen of these work, the POC is done. Ship it.

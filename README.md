@@ -13,9 +13,13 @@ BOOT (pre-wired broken system)
   ↓
 OBSERVE (live metrics turn red)
   ↓
-DIAGNOSE (Socratic AI asks questions, never lectures)
+TERMINAL DIAGNOSE (run pg_stat_activity, MONITOR, etc. in the terminal panel)
   ↓
-FIX (drag Redis into diagram, set TTL, add a partition)
+CHAT HYPOTHESIS (articulate your diagnosis to the Socratic loop)
+  ↓
+CODE FIX (edit the broken config value in the code panel, hit Apply)
+  ↓
+TERMINAL VERIFY (re-run the same commands, see numbers improve)
   ↓
 BREAK AGAIN (thundering herd, hot key, consumer lag)
   ↓
@@ -140,7 +144,17 @@ User (browser)
   ├─ Traffic dial ────────────────────→ POST /session/{id}/traffic {virtual_users}
   │                                      → adjusts k6 VU count live
   │
-  └─ Apply fix (drag node / set TTL) →  POST /session/{id}/state {state}
+  ├─ Terminal panel ──────────────────→ GET /session/{id}/terminal/{service}  (WebSocket)
+  │                                      → docker exec into running container
+  │                                      → xterm.js renders live shell
+  │
+  ├─ Apply config ────────────────────→ POST /session/{id}/config {key, value}
+  │                                      → hot-reloads affected service
+  │
+  ├─ Cheatsheet ──────────────────────→ GET /session/{id}/cheatsheet/{service}
+  │                                      → commands for current tab + state
+  │
+  └─ Apply fix (state transition) ────→ POST /session/{id}/state {state}
                                          → tears down old Compose project
                                          → boots new Compose project
                                          → metrics stream resumes
@@ -173,6 +187,7 @@ User (browser)
 | Layer | Technology |
 |---|---|
 | Frontend | Next.js 14 (App Router) + Tailwind + React Flow + Recharts |
+| Terminal | xterm.js (tabbed shell per service, WebSocket-proxied) |
 | Backend | FastAPI (Python 3.11) |
 | Load | k6 synthetic traffic |
 | Monitoring | Prometheus → SSE stream → frontend |
@@ -220,16 +235,23 @@ docker compose -p sc-dev down -v
 
 POC is complete when a user can:
 
+**Scenario-first path:**
 1. Open the app, see a healthy system at low traffic
 2. Drag traffic slider to max, watch Postgres turn red
 3. Type a diagnosis attempt, receive a Socratic question back
 4. Click the Postgres node, see the real connection pool at 98/100
-5. Add Redis, watch metrics go green in real time
-6. See the thundering herd hit at 4 minutes
-7. End with a scorecard showing which concepts were understood
+5. Open terminal → postgres tab, run `pg_stat_activity`, see 94 active connections
+6. Open code panel, edit TTL to `random.randint(240, 360)`, click Apply
+7. Re-run `TTL abc123` in Redis terminal, confirm staggered expiry
+8. Watch metrics go green in real time
+9. See the thundering herd hit at 4 minutes
+10. Advance tier, receive tier badge
+11. End with a scorecard showing which concepts were understood
 
 **Concept-first path:**
-8. Browse the concept catalog (e.g. click "Thundering Herd")
-9. App boots directly into `url_shortener/state2_thundering_herd` — already mid-failure
-10. KB article opens in sidebar explaining the concept
-11. Fix, advance, scorecard records the concept as mastered
+12. Browse the concept catalog (e.g. click "Thundering Herd")
+13. App boots directly into `url_shortener/state2_thundering_herd` — already mid-failure
+14. KB article opens in sidebar explaining the concept
+15. Socratic loop starts with `concept_target=ttl-jitter`
+16. Diagnose via terminal, fix via code panel, verify in terminal
+17. Fix, advance, scorecard records the concept as mastered

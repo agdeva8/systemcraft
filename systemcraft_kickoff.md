@@ -9,8 +9,8 @@
 # 1. Create the workspace
 mkdir systemcraft && cd systemcraft
 
-# 2. Copy plan.md here
-cp ~/Downloads/systemcraft_plan.md ./plan.md
+# 2. Copy the plan file here
+cp ~/Downloads/systemcraft_plan.md ./systemcraft_plan.md
 
 # 3. Set your API key
 export ANTHROPIC_API_KEY=sk-ant-your-key-here
@@ -27,16 +27,16 @@ claude
 ## The Kickoff Prompt (paste this into Claude Code)
 
 ```
-Read plan.md carefully — the entire file.
+Read systemcraft_plan.md carefully — the entire file.
 
 You are building SystemCraft, a distributed systems concept trainer.
-Full specification is in plan.md. Follow it exactly.
+Full specification is in systemcraft_plan.md. Follow it exactly.
 
 Your constraints:
 - ANTHROPIC_API_KEY is set in environment — use it for the Opus /diagnose endpoint
 - Docker is running and available
 - Build everything locally in this directory
-- Follow the build order in plan.md step by step
+- Follow the build order in systemcraft_plan.md step by step
 - Run verification checks after each step before proceeding
 - Surface to me only when the plan says to
 
@@ -57,7 +57,7 @@ Go.
 
 Claude Code will:
 
-1. Read plan.md (~5 minutes of processing)
+1. Read systemcraft_plan.md (~5 minutes of processing)
 2. Run environment checks, report results
 3. Write contract.json, show you for a quick review
 4. Start building infra — Docker Compose files, k6 scripts, Postgres seed
@@ -69,7 +69,7 @@ Claude Code will:
 
 **Your involvement:**
 - Review contract.json when it asks (10 minutes)
-- Answer any of the 4 surface conditions in plan.md
+- Answer any of the 4 surface conditions in systemcraft_plan.md
 - Do the final 8-step verification at the end
 
 **Timeline:** 4–6 days depending on how much tuning the infra needs.
@@ -81,8 +81,8 @@ Claude Code will:
 If it surfaces something unexpected, paste this:
 
 ```
-Check plan.md section [section name] for guidance on this.
-If plan.md doesn't cover it, make the pragmatic engineering 
+Check systemcraft_plan.md section [section name] for guidance on this.
+If systemcraft_plan.md doesn't cover it, make the pragmatic engineering 
 decision and document what you chose and why in a DECISIONS.md file.
 Continue building.
 ```

@@ -11,7 +11,7 @@ SystemCraft is a distributed systems concept trainer. Real Docker infrastructure
 ## Tech Stack
 
 ```
-Frontend:    Next.js 14 (App Router) + Tailwind + React Flow + Recharts
+Frontend:    Next.js 14 (App Router) + Tailwind + React Flow + Recharts + xterm.js
 Backend:     FastAPI (Python 3.11)
 Load:        k6 (synthetic traffic)
 Monitoring:  Prometheus → SSE stream → frontend
@@ -111,11 +111,11 @@ Follow this sequence exactly — do not skip or reorder.
 1. **Verify environment** — Docker 24+, Compose v2, Python 3.11+, Node 18+, `$ANTHROPIC_API_KEY` set
 2. **Write `contract.json`** — API contract in `systemcraft_plan.md`. Write first, never changes. Every component depends on it. Add one field: `POST /session/create` body gets optional `boot_state` (defaults to `state0_baseline`) so concept-first navigation can boot into any state directly.
 3. **Infra — `url_shortener`** — 4 Docker Compose states (baseline → cache → thundering herd → hot key), k6 scripts, `postgres/init.sql` (10M rows), Prometheus config. Verify failure specs before continuing.
-4. **Backend core** — `main.py`, `session_manager.py`, `metrics_stream.py`, internals parsers for Postgres + Redis. All endpoints from contract.json.
+4. **Backend core** — `main.py`, `session_manager.py`, `metrics_stream.py`, `terminal_manager.py`, internals parsers for Postgres + Redis. All endpoints from contract.json.
 5. **Frontend** — Next.js scaffold. Two entry points:
    - `/concept/[slug]` — reads `knowledge-base/concept_catalog.json`, creates session at mapped state, renders simulator + KB article sidebar side-by-side
    - `/scenario/[name]` — traditional scenario flow, starts at `state0_baseline`
-   Build components static-first then wire to API/SSE. `url_shortener` fully playable end-to-end via both entry points.
+   Build components static-first then wire to API/SSE. Key new components: `TerminalPanel.tsx` (xterm.js tabbed terminal per service), `CodePanel.tsx` (constrained config editor), `Cheatsheet.tsx` (context-aware command list). `url_shortener` fully playable end-to-end via both entry points.
 6. **Socratic prompt** — `llm/socratic_system_prompt.txt`, test 20+ inputs, tune until asking questions only.
 7. **Infra — remaining 7 scenarios** — one scenario at a time, each with Docker Compose states + k6 scripts + failure specs:
    - `write_scaling`: Postgres + Cassandra + Redis queue
@@ -178,7 +178,18 @@ User (browser)
   ├─ Traffic dial ────────────────────────────→ POST /session/{id}/traffic {virtual_users}
   │                                              → adjusts k6 VU count
   │
-  └─ Apply fix (drag node / set TTL) ─────────→ POST /session/{id}/state {state}
+  ├─ Terminal panel ──────────────────────────→ GET /session/{id}/terminal/{service}  (WebSocket)
+  │                                              → docker exec into running container
+  │                                              → xterm.js renders live shell (psql, redis-cli, etc.)
+  │
+  ├─ Apply config ────────────────────────────→ POST /session/{id}/config {key, value}
+  │                                              → templates value into container config
+  │                                              → hot-reloads affected service
+  │
+  ├─ Cheatsheet ──────────────────────────────→ GET /session/{id}/cheatsheet/{service}
+  │                                              → returns relevant commands for current tab + state
+  │
+  └─ Apply fix (state transition) ────────────→ POST /session/{id}/state {state}
                                                  → session_manager tears down old Compose project
                                                  → boots new Compose project for new state
                                                  → metrics stream resumes with new infrastructure
@@ -254,13 +265,18 @@ POC is complete when a user can:
 2. Drag traffic slider to max, watch Postgres turn red
 3. Type a diagnosis attempt, receive a Socratic question back
 4. Click Postgres node, see real connection pool at 98/100
-5. Add Redis, watch metrics go green in real time
-6. See thundering herd hit at 4 minutes
-7. End with scorecard showing concepts understood
+5. Open terminal panel → postgres tab, run `pg_stat_activity`, see 94 active connections
+6. Open code panel, change TTL from 300 to `random.randint(240, 360)`, click Apply
+7. Re-run `TTL abc123` in Redis terminal, see staggered expiry values
+8. Watch metrics go green in real time after the fix
+9. See thundering herd hit at 4 minutes
+10. Advance tier, receive tier badge
+11. End with scorecard showing concepts understood
 
 **Concept-first path:**
-8. Browse concept catalog (e.g. click "Thundering Herd")
-9. App boots directly into `url_shortener/state2_thundering_herd` — already mid-failure
-10. KB article opens in sidebar explaining the concept
-11. Socratic loop starts with `concept_target=ttl-jitter`
-12. User fixes, advances, scorecard records the concept as mastered
+12. Browse concept catalog (e.g. click "Thundering Herd")
+13. App boots directly into `url_shortener/state2_thundering_herd` — already mid-failure
+14. KB article opens in sidebar explaining the concept
+15. Socratic loop starts with `concept_target=ttl-jitter`
+16. User diagnoses via terminal, fixes via code panel, verifies in terminal
+17. User fixes, advances, scorecard records the concept as mastered

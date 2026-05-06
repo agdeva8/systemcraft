@@ -54,7 +54,7 @@ This is the inversion that makes SystemCraft different from every competing tool
 The loop:
 
 ```
-BREAK → OBSERVE → DIAGNOSE → FIX → BREAK AGAIN
+BOOT → OBSERVE → TERMINAL DIAGNOSE → CHAT HYPOTHESIS → CODE FIX → TERMINAL VERIFY → BREAK AGAIN → REPEAT
 ```
 
 Each break teaches one concept. Each fix reveals the next failure. By the end of a 30-minute scenario, the user has experienced six concepts under pressure, not read about them passively.
@@ -125,7 +125,14 @@ The user types: *"cache the redirects so we don't hit the database every time"*
 
 The loop recognizes cache-aside intent. Instead of applying it automatically, it asks: *"Where would you put the cache, and how long should a redirect be remembered?"*
 
-The user drags a Redis node onto the diagram. A TTL slider appears. They set it to 5 minutes. The diagram wires itself — App Server now checks Redis before Postgres.
+The user opens the Code panel. It shows the ~10 lines that matter:
+
+```python
+# app/cache.py
+CACHE_TTL = 300       # ← highlighted red — every key expires simultaneously
+```
+
+They change `300` to `random.randint(240, 360)` and click Apply. The app container hot-reloads. The user then opens the terminal panel → Redis tab and runs `TTL abc123` — they see staggered values like `247`, `312`, `289`. The diagram wires itself — App Server now checks Redis before Postgres.
 
 Metrics shift:
 
@@ -228,6 +235,7 @@ Video-based, mock interview simulation. Human review. High quality, high cost, n
 |---|---|---|---|---|
 | Real running infrastructure | ✗ | ✗ | ✗ | ✅ |
 | Failure you caused yourself | ✗ | ✗ | ✗ | ✅ |
+| Hands-on terminal (psql, redis-cli) | ✗ | ✗ | ✗ | ✅ |
 | Socratic diagnosis loop | ✗ | ✗ | Partial | ✅ |
 | Live internals windows | ✗ | Animated | ✗ | ✅ Real data |
 | Concept-first catalog | ✗ | ✗ | ✗ | ✅ |
@@ -295,8 +303,8 @@ The intent classifier runs locally to handle high-frequency classification cheap
 ### Tech stack
 
 ```
-Frontend:    Next.js + Tailwind + React Flow + Recharts
-Backend:     FastAPI (Python) — session orchestration, metrics pipeline
+Frontend:    Next.js + Tailwind + React Flow + Recharts + xterm.js
+Backend:     FastAPI (Python) — session orchestration, metrics pipeline, terminal WebSocket proxy
 LLM:         Claude Opus API (Socratic loop) + Llama 3.1 8B local (classifier)
 Infra:       Docker Compose — Postgres, Redis, LocalStack, k6, Prometheus
 Monitoring:  Prometheus + custom SSE stream to frontend

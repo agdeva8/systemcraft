@@ -58,6 +58,9 @@ GET  /internals/postgres      → parsed pg_stat_activity
 GET  /internals/cassandra     → memtable fill %, SSTable count, compaction status
 GET  /internals/kafka         → consumer group lag, partition offsets, throughput
 GET  /internals/elasticsearch → index refresh lag, shard assignment, segment count
+GET  /terminal/{service}      → WebSocket — proxies stdin/stdout to docker exec shell (psql, redis-cli, etc.)
+POST /config                  → templates new value into running container config, hot-reloads
+GET  /cheatsheet/{service}    → returns relevant commands for current tab + scenario state
 DELETE /session/{id}          → tears down containers, cleans up
 ```
 
@@ -87,6 +90,9 @@ MetricsPanel.tsx     — Recharts, SSE-fed, traffic dial
 InternalsWindow.tsx  — modal, tabbed: Redis / Postgres / Cassandra / Kafka / Elasticsearch
 SocraticChat.tsx     — message thread, hint chips, tier advance
 TrafficDial.tsx      — controls k6 VU count via API
+TerminalPanel.tsx    — xterm.js tabbed terminal, one tab per running service (postgres, redis, app-logs)
+CodePanel.tsx        — constrained config editor (MVP: labeled inputs; full: Monaco-style) + Apply button
+Cheatsheet.tsx       — context-aware command list; updates on tab switch or state advance
 ```
 
 **Output:** `/workspace/frontend/`
@@ -203,8 +209,8 @@ All 6 agents unblock the moment this is written.
 - Resource limit corrections if needed
 
 **End of Week 2 deliverables:**
-- Backend running locally, all endpoints responding
-- Frontend rendering with mocked data
+- Backend running locally, all endpoints responding (including WebSocket terminal)
+- Frontend rendering with mocked data, terminal panel wired to WebSocket
 - Infra verified — failure modes match specs
 
 ---
