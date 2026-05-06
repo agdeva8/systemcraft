@@ -90,27 +90,55 @@ Backend endpoint `GET /session/{id}/cheatsheet/{service}` returns the command li
 
 ### Code/Config Panel (CodePanel.tsx)
 
-A focused editor showing only the ~10 lines of code or config that are broken in the current state. The user edits a specific value and clicks "Apply". Backend templates the change and hot-reloads the affected container.
+Full-file Monaco editor — the actual source file running inside the container. User can read, scroll, and navigate the entire file. `# TODO:` comments are injected at the exact lines that need fixing, guiding the user to the right spot without giving away the answer. User edits inline and clicks Apply. Backend hot-reloads the affected container.
 
-**Two modes:**
+**Design principles:**
+- Show the **whole file** — real code, not a cropped snippet. User builds intuition by reading context.
+- `# TODO:` comments act as signposts, not solutions. They name the concept, not the fix.
+- File tab bar at top (e.g. `app/cache.py`, `postgres/postgresql.conf`) — multiple files selectable per state.
+- Apply button triggers `POST /session/{id}/config` with full file content; backend diffs and reloads only what changed.
+- After Apply, TODO comment is removed from that line and a green checkmark appears in the gutter.
 
-1. **MVP — constrained input fields**: Labeled number/text inputs for the key config value only.
-   - `TTL (seconds): [300]` with an Apply button
-   - `DB Pool Size: [95]` with an Apply button
-   - No code shown — just the knob
-
-2. **Full — Monaco-style editor**: Shows the actual broken code lines (e.g., `CACHE_TTL = 300`) highlighted in context. User edits inline. Apply triggers `POST /session/{id}/config`.
-
-**Example — thundering herd fix:**
+**TODO comment format:**
 ```python
-# app/cache.py — lines 12-18 shown
-CACHE_TTL = 300          # ← currently 300s for all URLs (highlighted red)
+# TODO: TTL is fixed — all keys expire simultaneously. How would you stagger expiry?
+CACHE_TTL = 300
+```
+Not: `# TODO: change to random.randint(240, 360)` — that gives away the answer.
+
+**Example — thundering herd fix (`app/cache.py`, full file shown):**
+```python
+import redis
+import os
+import random
+
+redis_client = redis.Redis(host=os.getenv("REDIS_HOST", "redis"), port=6379, decode_responses=True)
+
+# TODO: TTL is fixed — every key expires at the same time. Consider staggering.
+CACHE_TTL = 300
+
+def get_cache(key):
+    return redis_client.get(key)
 
 def set_cache(key, value):
-    ttl = CACHE_TTL       # ← every key expires at the same time
+    ttl = CACHE_TTL       # every key gets identical TTL → thundering herd on expiry
     redis_client.setex(key, ttl, value)
+
+def invalidate(key):
+    redis_client.delete(key)
 ```
-User changes `300` to `random.randint(240, 360)`. Hits Apply. App container reloads. User verifies via `TTL abc123` in the Redis terminal — sees staggered expiry.
+User scrolls to the TODO, understands the bug, changes `CACHE_TTL = 300` to `ttl = random.randint(240, 360)` in `set_cache`. Hits Apply. Verifies via `TTL abc123` in Redis terminal — sees staggered values like 247, 312, 289.
+
+**Files exposed per state (url_shortener):**
+
+| State | Files | TODO target |
+|-------|-------|-------------|
+| `state0_baseline` | `app/main.py`, `postgres/postgresql.conf` | `max_connections = 100`, `DB_POOL_SIZE = 95` |
+| `state1_cache` | `app/cache.py`, `app/main.py` | cache-aside pattern wiring |
+| `state2_thundering_herd` | `app/cache.py` | fixed TTL → stagger |
+| `state3_hotkey` | `app/cache.py`, `app/main.py` | local L1 cache for hot keys |
+
+Backend endpoint `GET /session/{id}/codefile/{filename}` returns file content with TODO comments pre-injected for the current state. Filename is URL-encoded path (e.g. `app%2Fcache.py`).
 
 ### Diagnostic Flow (full loop)
 

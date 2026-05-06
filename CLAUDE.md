@@ -115,7 +115,7 @@ Follow this sequence exactly — do not skip or reorder.
 5. **Frontend** — Next.js scaffold. Two entry points:
    - `/concept/[slug]` — reads `knowledge-base/concept_catalog.json`, creates session at mapped state, renders simulator + KB article sidebar side-by-side
    - `/scenario/[name]` — traditional scenario flow, starts at `state0_baseline`
-   Build components static-first then wire to API/SSE. Key new components: `TerminalPanel.tsx` (xterm.js tabbed terminal per service), `CodePanel.tsx` (constrained config editor), `Cheatsheet.tsx` (context-aware command list). `url_shortener` fully playable end-to-end via both entry points.
+   Build components static-first then wire to API/SSE. Key new components: `TerminalPanel.tsx` (xterm.js tabbed terminal per service), `CodePanel.tsx` (full-file Monaco editor with `# TODO:` signpost comments injected at fix locations — user navigates real code, not cropped snippets), `Cheatsheet.tsx` (context-aware command list). `url_shortener` fully playable end-to-end via both entry points.
 6. **Socratic prompt** — `llm/socratic_system_prompt.txt`, test 20+ inputs, tune until asking questions only.
 7. **Infra — remaining 7 scenarios** — one scenario at a time, each with Docker Compose states + k6 scripts + failure specs:
    - `write_scaling`: Postgres + Cassandra + Redis queue
@@ -182,8 +182,8 @@ User (browser)
   │                                              → docker exec into running container
   │                                              → xterm.js renders live shell (psql, redis-cli, etc.)
   │
-  ├─ Apply config ────────────────────────────→ POST /session/{id}/config {key, value}
-  │                                              → templates value into container config
+  ├─ Apply config ────────────────────────────→ POST /session/{id}/config {filename, content}
+  │                                              → full file content written into container
   │                                              → hot-reloads affected service
   │
   ├─ Cheatsheet ──────────────────────────────→ GET /session/{id}/cheatsheet/{service}
@@ -266,7 +266,7 @@ POC is complete when a user can:
 3. Type a diagnosis attempt, receive a Socratic question back
 4. Click Postgres node, see real connection pool at 98/100
 5. Open terminal panel → postgres tab, run `pg_stat_activity`, see 94 active connections
-6. Open code panel, change TTL from 300 to `random.randint(240, 360)`, click Apply
+6. Open code panel → `app/cache.py` loads in full — scroll to `# TODO: TTL is fixed` comment, change `CACHE_TTL = 300` to `ttl = random.randint(240, 360)`, click Apply
 7. Re-run `TTL abc123` in Redis terminal, see staggered expiry values
 8. Watch metrics go green in real time after the fix
 9. See thundering herd hit at 4 minutes
