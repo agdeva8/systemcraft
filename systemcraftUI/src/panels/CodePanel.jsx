@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { Box, Chip, Tooltip, IconButton } from '@mui/material'
+import { Box, Chip, Tooltip, IconButton, Modal, CircularProgress } from '@mui/material'
 import Editor from '@monaco-editor/react'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import SearchIcon from '@mui/icons-material/Search'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh'
 import { C } from '../theme'
 
 // Inject Monaco glyph + line highlight CSS once
@@ -292,6 +293,10 @@ export default function CodePanel({ onApply }) {
   )
   const [todoLines, setTodoLines] = useState({})
   const [todoIndex, setTodoIndex] = useState(0)
+  const [syntaxOpen, setSyntaxOpen] = useState(false)
+  const [syntaxQuery, setSyntaxQuery] = useState('')
+  const [syntaxResult, setSyntaxResult] = useState('')
+  const [syntaxLoading, setSyntaxLoading] = useState(false)
   const editorRef = useRef(null)
   const monacoRef = useRef(null)
   const decorationsRef = useRef(null)
@@ -387,6 +392,47 @@ export default function CodePanel({ onApply }) {
     }
   }, [])
 
+  const querySyntaxHelper = useCallback(async () => {
+    if (!syntaxQuery.trim()) return
+    setSyntaxLoading(true)
+    setSyntaxResult('')
+    try {
+      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
+      if (!apiKey) {
+        setSyntaxResult('Error: VITE_ANTHROPIC_API_KEY not set in .env')
+        setSyntaxLoading(false)
+        return
+      }
+      const selectedText = editorRef.current?.getSelectedText() || ''
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-haiku-20241022',
+          max_tokens: 300,
+          system: 'You are a syntax helper. Respond with ONLY code patterns/syntax. No explanations, no prose. Just the code.',
+          messages: [
+            {
+              role: 'user',
+              content: `${selectedText ? `Current code:\n\`\`\`\n${selectedText}\n\`\`\`\n\n` : ''}Request: ${syntaxQuery}`,
+            },
+          ],
+        }),
+      })
+      const data = await response.json()
+      const result = data.content?.[0]?.text || 'No response'
+      setSyntaxResult(result)
+    } catch (err) {
+      setSyntaxResult(`Error: ${err.message}`)
+    } finally {
+      setSyntaxLoading(false)
+    }
+  }, [syntaxQuery])
+
   function handleEditorWillMount(monaco) {
     injectMonacoCss()
     monaco.editor.defineTheme('sc-dark', SC_DARK_THEME)
@@ -465,6 +511,11 @@ export default function CodePanel({ onApply }) {
           <Tooltip title="Search in file (Ctrl+F)" arrow>
             <IconButton size="small" onClick={openSearch} sx={{ color: C.ink4, p: 0.5, '&:hover': { color: C.ink2 } }}>
               <SearchIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Syntax helper (quick question)" arrow>
+            <IconButton size="small" onClick={() => setSyntaxOpen(true)} sx={{ color: C.ink4, p: 0.5, '&:hover': { color: C.accent } }}>
+              <AutoFixHighIcon sx={{ fontSize: 14 }} />
             </IconButton>
           </Tooltip>
           {hasTodo && (
@@ -649,6 +700,72 @@ export default function CodePanel({ onApply }) {
           </Box>
         </Box>
       </Box>
+
+      {/* Syntax helper modal */}
+      <Modal open={syntaxOpen} onClose={() => setSyntaxOpen(false)} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{
+          bgcolor: C.bg1, border: `1px solid ${C.line1}`, borderRadius: 2,
+          p: 2.5, width: '90%', maxWidth: 500,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        }}>
+          <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem', color: C.ink4, mb: 1.5, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            Syntax Helper
+          </Box>
+          <Box
+            component="textarea"
+            value={syntaxQuery}
+            onChange={e => setSyntaxQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) querySyntaxHelper() }}
+            placeholder="e.g., make this a random variable, convert to async, add error handling…"
+            rows={2}
+            sx={{
+              width: '100%', bgcolor: C.bg2, border: `1px solid ${C.line2}`, borderRadius: 1,
+              px: 1.5, py: 1, fontSize: '0.875rem', color: C.ink1, fontFamily: 'inherit',
+              resize: 'none', outline: 'none', mb: 1.5,
+              '&:focus': { borderColor: C.accentLine },
+              '&::placeholder': { color: C.ink4 },
+            }}
+          />
+          {syntaxResult && (
+            <Box sx={{
+              bgcolor: C.bg2, border: `1px solid ${C.line2}`, borderRadius: 1,
+              p: 1.5, mb: 1.5, maxHeight: 200, overflowY: 'auto',
+              fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8125rem',
+              color: C.ok, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+            }}>
+              {syntaxResult}
+            </Box>
+          )}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box
+              component="button"
+              onClick={querySyntaxHelper}
+              disabled={syntaxLoading}
+              sx={{
+                flex: 1, fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', fontWeight: 600,
+                color: C.bg0, bgcolor: syntaxLoading ? C.ink4 : C.accent,
+                border: 'none', borderRadius: 1, py: 1, cursor: syntaxLoading ? 'wait' : 'pointer',
+                transition: 'opacity 0.15s',
+                '&:hover:not(:disabled)': { opacity: 0.88 },
+              }}
+            >
+              {syntaxLoading ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : 'Get Syntax'}
+            </Box>
+            <Box
+              component="button"
+              onClick={() => { setSyntaxOpen(false); setSyntaxQuery(''); setSyntaxResult('') }}
+              sx={{
+                fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', fontWeight: 600,
+                color: C.ink2, bgcolor: 'transparent', border: `1px solid ${C.line2}`,
+                borderRadius: 1, px: 2, cursor: 'pointer',
+                '&:hover': { borderColor: C.line3, color: C.ink1 },
+              }}
+            >
+              Close
+            </Box>
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   )
 }
