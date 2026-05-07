@@ -50,7 +50,7 @@ knowledge-base/
 ```
 
 **Reading KB content** (informing Socratic prompts, understanding concepts): always use `knowledge-base/md/`. Clean markdown, no boilerplate, LLM-friendly.  
-**Serving KB sidebar in-app**: serve the HTML files directly from their original folders.
+**Serving KB sidebar in-app**: serve markdown files from `knowledge-base/md/`. UI renders markdown directly — HTML files not used.
 
 `concept_catalog.json` is the routing table for concept-first navigation. Every learnable concept maps to: the KB article that explains it + the exact scenario+state that demonstrates it failing.
 
