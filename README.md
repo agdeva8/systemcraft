@@ -2,7 +2,7 @@
 
 > A distributed systems concept trainer. Real Docker infrastructure starts broken. You diagnose the failure through a Socratic loop powered by Claude Opus, apply a fix, and hit the next failure. The vehicle (URL shortener, Pastebin, etc.) doesn't matter — the concepts do.
 
-**[UI Demo](https://agdeva8.github.io/systemcraft/systemcraft_demo.html)**
+**[Live Demo](https://agdeva8.github.io/systemcraft/)** · [GitHub](https://github.com/agdeva8/systemcraft)
 
 ---
 
