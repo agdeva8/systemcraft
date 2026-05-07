@@ -1,16 +1,10 @@
-import { useState, useRef, useEffect } from 'react'
-import { Box, Chip, Tooltip } from '@mui/material'
+import { useState, useRef, useEffect, useContext } from 'react'
+import { Box, Chip } from '@mui/material'
 import { C } from '../theme'
+import { SessionCtx } from '../components/Session'
+import { sendDiagnose } from '../lib/api'
 
-const MESSAGES = [
-  { who: 'ai', text: 'DB shows 94 active connections but CPU is at 31%. What does that combination usually tell you about where the bottleneck lives?' },
-  { who: 'user', text: "Connections saturated but queries aren't slow. Sounds like pool exhaustion." },
-  { who: 'ai', text: 'Right direction. If you cached the read path with Redis, what would happen to those 94 connections during the next traffic spike?' },
-  { who: 'user', text: "They'd drop — most reads would hit Redis instead of going to the DB." },
-  { who: 'ai', text: 'Good. You added Redis with a 300s TTL. At the 4-minute mark p99 spiked to 410ms for ~30s and db_cpu hit 71%. What most likely triggered that?', meta: '2:41 elapsed' },
-]
-
-const ANSWER_CHIPS = ['TTLs aligned', 'Cold cache stampede', 'Lock contention']
+const ANSWER_CHIPS = ['TTLs aligned', 'Cold cache stampede', 'Lock contention', 'Pool exhaustion']
 
 function Bubble({ who, text, meta }) {
   const isAi = who === 'ai'
@@ -22,7 +16,7 @@ function Bubble({ who, text, meta }) {
       <Box sx={{
         px: 2, py: 1.5, borderRadius: 1.5,
         fontSize: '1rem', fontWeight: 600, lineHeight: 1.7,
-        color: isAi ? C.ink1 : C.ink1,
+        color: C.ink1,
         bgcolor: isAi ? C.accentSoft : C.bg2,
         border: `1px solid ${isAi ? C.accentLine : C.line1}`,
         maxWidth: '86%',
@@ -37,7 +31,7 @@ function Bubble({ who, text, meta }) {
 }
 
 function ElapsedTimer() {
-  const [seconds, setSeconds] = useState(161) // start at 2:41
+  const [seconds, setSeconds] = useState(0)
   useEffect(() => {
     const t = setInterval(() => setSeconds(s => s + 1), 1000)
     return () => clearInterval(t)
@@ -52,25 +46,67 @@ function ElapsedTimer() {
 }
 
 export default function TutorPanel({ target, advanced, onAdvance, onFinish }) {
-  const [messages, setMessages] = useState(MESSAGES)
+  const { sessionId, metrics } = useContext(SessionCtx)
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [apiHistory, setApiHistory] = useState([])
   const scrollRef = useRef(null)
+
+  // Seed opening question on mount
+  useEffect(() => {
+    if (!sessionId) return
+    setLoading(true)
+    const ctx = {
+      current_state: 'state0_baseline',
+      current_metrics: metrics ?? {},
+      tier: 1,
+      concept_target: target ?? '',
+      history: [],
+    }
+    sendDiagnose(sessionId, 'start', ctx)
+      .then(r => {
+        setMessages([{ who: 'ai', text: r.reply }])
+        setApiHistory([
+          { role: 'user', content: 'start' },
+          { role: 'assistant', content: r.reply },
+        ])
+      })
+      .catch(() => {
+        setMessages([{ who: 'ai', text: 'DB shows 94 active connections but CPU is at 31%. What does that combination usually tell you about where the bottleneck lives?' }])
+      })
+      .finally(() => setLoading(false))
+  }, [sessionId])
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-  }, [messages, advanced])
+  }, [messages, advanced, loading])
 
-  const send = (text) => {
+  const send = async (text) => {
     const msg = (text || input).trim()
-    if (!msg) return
-    setMessages(m => [...m, { who: 'user', text: msg }])
+    if (!msg || loading) return
     setInput('')
-    setTimeout(() => {
-      setMessages(m => [...m, {
-        who: 'ai',
-        text: 'What does the TTL countdown in the Redis panel tell you about when those 94 hits will happen again?',
-      }])
-    }, 650)
+    setMessages(m => [...m, { who: 'user', text: msg }])
+    setLoading(true)
+
+    const newHistory = [...apiHistory, { role: 'user', content: msg }]
+    const ctx = {
+      current_state: 'state0_baseline',
+      current_metrics: metrics ?? {},
+      tier: 1,
+      concept_target: target ?? '',
+      history: apiHistory,
+    }
+
+    try {
+      const r = await sendDiagnose(sessionId, msg, ctx)
+      setMessages(m => [...m, { who: 'ai', text: r.reply }])
+      setApiHistory([...newHistory, { role: 'assistant', content: r.reply }])
+    } catch {
+      setMessages(m => [...m, { who: 'ai', text: 'What specific metric value catches your eye first?' }])
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -82,13 +118,27 @@ export default function TutorPanel({ target, advanced, onAdvance, onFinish }) {
         <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem', color: C.ink4 }}>· {target}</Box>
         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 2 }}>
           <ElapsedTimer />
-          <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem', color: C.ink4 }}>opus · $0.18</Box>
+          <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem', color: C.ink4 }}>opus</Box>
         </Box>
       </Box>
 
-      {/* Messages — independently scrollable */}
+      {/* Messages */}
       <Box ref={scrollRef} sx={{ flex: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2.5, minHeight: 0 }}>
         {messages.map((m, i) => <Bubble key={i} {...m} />)}
+        {loading && (
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+            <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: C.accent }}>Tutor</Box>
+            <Box sx={{ px: 2, py: 1.5, borderRadius: 1.5, bgcolor: C.accentSoft, border: `1px solid ${C.accentLine}`, display: 'flex', gap: 0.75, alignItems: 'center' }}>
+              {[0, 1, 2].map(i => (
+                <Box key={i} sx={{
+                  width: 6, height: 6, borderRadius: '50%', bgcolor: C.accent,
+                  '@keyframes bounce': { '0%,100%': { opacity: 0.3, transform: 'scale(0.8)' }, '50%': { opacity: 1, transform: 'scale(1)' } },
+                  animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+                }} />
+              ))}
+            </Box>
+          </Box>
+        )}
         {advanced && (
           <Box sx={{ p: 2, borderRadius: 1.5, bgcolor: C.okSoft, border: `1px solid ${C.ok}44` }}>
             <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: C.ok, mb: 0.75 }}>Concept understood</Box>
@@ -105,7 +155,7 @@ export default function TutorPanel({ target, advanced, onAdvance, onFinish }) {
         )}
       </Box>
 
-      {/* Answer suggestion chips */}
+      {/* Quick answer chips */}
       <Box sx={{ px: 2, pt: 1, pb: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.75, flexShrink: 0 }}>
         <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5rem', color: C.ink4, letterSpacing: '0.06em', textTransform: 'uppercase', width: '100%', mb: 0.25 }}>Quick answer</Box>
         {ANSWER_CHIPS.map(s => (
@@ -139,16 +189,16 @@ export default function TutorPanel({ target, advanced, onAdvance, onFinish }) {
               '&::placeholder': { color: C.ink4, fontSize: '0.8125rem' },
             }}
           />
-          <Box component="button" onClick={() => send()} sx={{
+          <Box component="button" onClick={() => send()} disabled={loading} sx={{
             fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem', fontWeight: 500,
             color: C.accent, bgcolor: C.accentSoft, border: `1px solid ${C.accentLine}`,
-            borderRadius: 1, px: 1.75, cursor: 'pointer', flexShrink: 0, alignSelf: 'stretch',
-            '&:hover': { bgcolor: 'rgba(96,165,250,0.18)' },
+            borderRadius: 1, px: 1.75, cursor: loading ? 'wait' : 'pointer', flexShrink: 0, alignSelf: 'stretch',
+            opacity: loading ? 0.6 : 1,
+            '&:hover:not(:disabled)': { bgcolor: 'rgba(96,165,250,0.18)' },
           }}>
             Send
           </Box>
         </Box>
-        {/* Hint — visually separated */}
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <Chip
             label="💡 Hint, please"

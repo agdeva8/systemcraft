@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "catalog": {
+    "all": { "method": "GET", "path": "/api/catalog", "response": { "shelves": "array", "scenarios": "array", "technologies": "array" } },
+    "concepts": { "method": "GET", "path": "/api/catalog/concepts" },
+    "scenarios": { "method": "GET", "path": "/api/catalog/scenarios" },
+    "technologies": { "method": "GET", "path": "/api/catalog/technologies" }
+  },
+  "sessions": {
+    "create": { "method": "POST", "path": "/api/session/create", "body": { "scenario": "string", "boot_state": "string|null", "concept_target": "string|null" }, "response": { "session_id": "string", "state": "string", "boot_time_ms": "number" } },
+    "get": { "method": "GET", "path": "/api/session/{session_id}" },
+    "apply_state": { "method": "POST", "path": "/api/session/{session_id}/state", "body": { "state": "string" }, "response": { "ok": "boolean", "state": "string" } },
+    "destroy": { "method": "DELETE", "path": "/api/session/{session_id}", "response": { "ok": "boolean" } }
+  },
+  "metrics": {
+    "stream": { "method": "GET", "path": "/api/session/{session_id}/metrics", "type": "SSE", "interval_ms": 2000 }
+  },
+  "interactive": {
+    "terminal": { "method": "GET", "path": "/api/session/{session_id}/terminal/{service}", "type": "WebSocket" },
+    "apply_config": { "method": "POST", "path": "/api/session/{session_id}/config", "body": { "filename": "string", "content": "string" } },
+    "cheatsheet": { "method": "GET", "path": "/api/session/{session_id}/cheatsheet/{service}" },
+    "codefile": { "method": "GET", "path": "/api/session/{session_id}/codefile/{filename}" }
+  },
+  "internals": {
+    "redis": { "method": "GET", "path": "/api/session/{session_id}/internals/redis" },
+    "postgres": { "method": "GET", "path": "/api/session/{session_id}/internals/postgres" }
+  },
+  "diagnose": { "method": "POST", "path": "/api/session/{session_id}/diagnose", "body": { "message": "string", "context": { "current_state": "string", "current_metrics": "object", "tier": "number", "concept_target": "string", "history": "array" } }, "response": { "reply": "string", "intent_detected": "string|null", "next_state": "string|null", "show_hint": "boolean" } },
+  "traffic": { "method": "POST", "path": "/api/session/{session_id}/traffic", "body": { "virtual_users": "number" } }
+}

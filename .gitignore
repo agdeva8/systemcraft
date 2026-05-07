@@ -3,6 +3,10 @@
 knowledge-base/**/*.html
 knowledge-base/html/index.html
 
+# Secrets
+.env
+*.env.local
+
 # IDE
 .idea/
 

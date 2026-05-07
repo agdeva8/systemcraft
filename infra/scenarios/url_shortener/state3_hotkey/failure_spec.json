@@ -1,0 +1,14 @@
+{
+  "state": "state3_hotkey",
+  "target_rps": 3000,
+  "failure_mode": "hot_key_redis_cpu_saturation",
+  "hot_key": "viral001",
+  "hot_key_traffic_pct": 80,
+  "checks": {
+    "redis_cpu_sys": { "op": ">", "value": 0.8 },
+    "hot_key_request_pct": { "op": ">", "value": 70 },
+    "latency_p99_ms": { "op": ">", "value": 20 },
+    "db_cpu_percent": { "op": "<", "value": 15 }
+  },
+  "note": "Redis single-threaded CPU saturates on one key. Fix: add in-process L1 cache for top-N hot keys."
+}

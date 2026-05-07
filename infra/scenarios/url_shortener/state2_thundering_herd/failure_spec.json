@@ -1,0 +1,19 @@
+{
+  "state": "state2_thundering_herd",
+  "trigger_time_seconds": 240,
+  "failure_mode": "thundering_herd_on_ttl_expiry",
+  "checks": {
+    "at_ttl_expiry": {
+      "db_cpu_percent": { "op": ">", "value": 70 },
+      "latency_p99_ms": { "op": ">", "value": 400 },
+      "db_connections_active": { "op": ">", "value": 80 },
+      "redis_hit_ratio_percent": { "op": "<", "value": 10 }
+    },
+    "after_cache_rebuild_60s": {
+      "db_cpu_percent": { "op": "<", "value": 20 },
+      "latency_p99_ms": { "op": "<", "value": 20 },
+      "redis_hit_ratio_percent": { "op": ">", "value": 85 }
+    }
+  },
+  "note": "Spike is transient. System recovers as cache rebuilds. Fix: stagger TTL with random.randint(240, 360)."
+}

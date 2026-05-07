@@ -4,12 +4,16 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import SendIcon from '@mui/icons-material/Send'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import CloseIcon from '@mui/icons-material/Close'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
+import ViewSidebarIcon from '@mui/icons-material/ViewSidebar'
 import { C } from '../theme'
+import { streamAssist } from '../lib/api'
+import FloatingWrapper from '../components/FloatingWrapper'
 
 function AiMessage({ content }) {
   const parts = content.split(/(```[\s\S]*?```)/g)
   return (
-    <Box sx={{ fontSize: '1.0625rem', color: C.ink1, lineHeight: 1.75, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+    <Box sx={{ fontSize: '0.8125rem', color: C.ink1, lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: '"JetBrains Mono", monospace' }}>
       {parts.map((part, i) => {
         if (part.startsWith('```')) {
           const inner = part.slice(3).trimEnd().slice(0, -3)
@@ -18,8 +22,8 @@ function AiMessage({ content }) {
           return (
             <Box key={i} component="pre" sx={{
               bgcolor: C.bg0, border: `1px solid ${C.line2}`, borderRadius: 1,
-              px: 1.5, py: 1, my: '10px',
-              fontFamily: '"JetBrains Mono", monospace', fontSize: '0.9375rem',
+              px: 1.5, py: 1, my: '8px',
+              fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8125rem',
               color: C.ok, overflow: 'auto', whiteSpace: 'pre',
             }}>
               {code}
@@ -32,18 +36,135 @@ function AiMessage({ content }) {
   )
 }
 
+function AiBody({ messages, setMessages, input, setInput, loading, send, codeContext, terminalContext, bottomRef }) {
+  return (
+    <>
+      {/* Context indicator */}
+      {(codeContext?.path || terminalContext) && (
+        <Box sx={{
+          px: 1.5, py: 0.5, borderBottom: `1px solid ${C.line1}`,
+          display: 'flex', gap: 0.5, flexWrap: 'wrap', flexShrink: 0,
+        }}>
+          {codeContext?.path && (
+            <Box sx={{
+              fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem',
+              color: C.accent, bgcolor: C.accentSoft, border: `1px solid ${C.accentLine}`,
+              borderRadius: 0.5, px: 0.75, py: 0.25,
+            }}>
+              ◈ {codeContext.path}
+            </Box>
+          )}
+          {terminalContext && (
+            <Box sx={{
+              fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem',
+              color: C.ok, bgcolor: C.okSoft, border: `1px solid ${C.ok}33`,
+              borderRadius: 0.5, px: 0.75, py: 0.25,
+            }}>
+              ◈ terminal output
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {/* Messages */}
+      <Box sx={{ flex: 1, overflowY: 'auto', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5, minHeight: 0 }}>
+        {messages.length === 0 && (
+          <Box sx={{ color: C.ink4, fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8125rem', lineHeight: 1.75, mt: 0.5 }}>
+            Ask anything — code, shell, infra.<br /><br />
+            Context auto-included:<br />
+            · Active file in Code Editor<br />
+            · Terminal output<br /><br />
+            <Box component="span" sx={{ color: C.ink3 }}>Enter ↵ to send</Box>
+          </Box>
+        )}
+        {messages.map((msg, i) => (
+          <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+            <Box sx={{
+              fontFamily: '"JetBrains Mono", monospace', fontSize: '0.625rem',
+              color: msg.role === 'user' ? C.accent : C.ok,
+              textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700,
+            }}>
+              {msg.role === 'user' ? 'You' : 'Assistant'}
+            </Box>
+            <Box sx={{
+              bgcolor: msg.role === 'user' ? C.bg2 : 'transparent',
+              border: msg.role === 'user' ? `1px solid ${C.line2}` : 'none',
+              borderRadius: 1,
+              px: msg.role === 'user' ? 1 : 0,
+              py: msg.role === 'user' ? 0.75 : 0,
+            }}>
+              <AiMessage content={msg.content} />
+            </Box>
+          </Box>
+        ))}
+        {loading && messages[messages.length - 1]?.content === '' && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: C.ink4, fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8125rem' }}>
+            <CircularProgress size={14} sx={{ color: C.accent }} />
+            thinking…
+          </Box>
+        )}
+        <div ref={bottomRef} />
+      </Box>
+
+      {/* Input */}
+      <Box sx={{ borderTop: `1px solid ${C.line1}`, p: 1, flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'flex-end' }}>
+          <Box
+            component="textarea"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
+            }}
+            placeholder="Ask about code or terminal…"
+            rows={2}
+            sx={{
+              flex: 1, bgcolor: C.bg2, border: `1px solid ${C.line2}`, borderRadius: 1,
+              px: 1, py: 0.75, fontSize: '0.8125rem', color: C.ink1,
+              fontFamily: '"JetBrains Mono", monospace', resize: 'none', outline: 'none',
+              lineHeight: 1.55,
+              '&:focus': { borderColor: C.accentLine },
+              '&::placeholder': { color: C.ink4 },
+            }}
+          />
+          <IconButton
+            onClick={send}
+            disabled={!input.trim() || loading}
+            sx={{
+              bgcolor: C.accent, color: C.bg0, borderRadius: 1,
+              p: 0.875, flexShrink: 0,
+              '&:hover': { bgcolor: C.accent, opacity: 0.85 },
+              '&:disabled': { bgcolor: C.line2, color: C.ink4 },
+            }}
+          >
+            <SendIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Box>
+        <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.625rem', color: C.ink4, mt: 0.5 }}>
+          Enter to send · Shift+Enter for newline
+        </Box>
+      </Box>
+    </>
+  )
+}
+
+const DOCK_W = 360
 const MIN_W = 260
 const MAX_W = 700
 
-export default function AiPanel({ codeContext, terminalContext, onClose }) {
+export default function AiPanel({ sessionId, codeContext, terminalContext, onClose, floating, onToggleFloat }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [width, setWidth] = useState(360)
+  const [width, setWidth] = useState(DOCK_W)
   const dragging = useRef(false)
   const startX = useRef(0)
   const startW = useRef(0)
   const bottomRef = useRef(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   const onResizeStart = useCallback((e) => {
     dragging.current = true
@@ -73,66 +194,63 @@ export default function AiPanel({ codeContext, terminalContext, onClose }) {
     }
   }, [])
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  const abortRef = useRef(null)
 
-  const send = useCallback(async () => {
+  const send = useCallback(() => {
     if (!input.trim() || loading) return
-
-    const contextParts = []
-    if (codeContext?.path) {
-      contextParts.push(
-        `Active file: ${codeContext.path} (${codeContext.language || 'text'})`,
-        '```',
-        codeContext.content || '',
-        '```',
-      )
-    }
-    if (terminalContext) {
-      contextParts.push(`\nTerminal output:\n\`\`\`\n${terminalContext}\n\`\`\``)
-    }
-    const contextBlock = contextParts.join('\n')
-
     const userMsg = { role: 'user', content: input }
     const history = [...messages, userMsg]
-    setMessages(history)
+    setMessages([...history, { role: 'assistant', content: '' }])
     setInput('')
     setLoading(true)
 
-    try {
-      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-      if (!apiKey) {
-        setMessages(h => [...h, { role: 'assistant', content: 'Error: VITE_ANTHROPIC_API_KEY not set in .env' }])
-        return
-      }
+    const apiHistory = history.slice(0, -1).map(m => ({ role: m.role, content: m.content }))
+    abortRef.current = streamAssist(sessionId, userMsg.content, apiHistory, codeContext, terminalContext, {
+      onToken: (token) => {
+        setMessages(h => {
+          const updated = [...h]
+          const last = updated[updated.length - 1]
+          updated[updated.length - 1] = { ...last, content: last.content + token }
+          return updated
+        })
+      },
+      onDone: () => setLoading(false),
+      onError: (err) => {
+        setMessages(h => {
+          const updated = [...h]
+          updated[updated.length - 1] = { role: 'assistant', content: `Error: ${err}` }
+          return updated
+        })
+        setLoading(false)
+      },
+    })
+  }, [input, loading, messages, sessionId, codeContext, terminalContext])
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-3-5-haiku-20241022',
-          max_tokens: 1024,
-          system: `You are an expert assistant embedded in SystemCraft, a distributed systems trainer. You help users understand code, debug terminal issues, and diagnose infrastructure problems.
+  useEffect(() => {
+    return () => abortRef.current?.()
+  }, [])
 
-Be concise. Show exact shell commands when relevant. Reference specific line numbers, variable names, or metric values from the context.${contextBlock ? `\n\nCurrent context:\n${contextBlock}` : ''}`,
-          messages: history.map(m => ({ role: m.role, content: m.content })),
-        }),
-      })
-      const data = await res.json()
-      const result = data.content?.[0]?.text || 'No response'
-      setMessages(h => [...h, { role: 'assistant', content: result }])
-    } catch (err) {
-      setMessages(h => [...h, { role: 'assistant', content: `Error: ${err.message}` }])
-    } finally {
-      setLoading(false)
-    }
-  }, [input, loading, messages, codeContext, terminalContext])
+  const bodyProps = { messages, setMessages, input, setInput, loading, send, codeContext, terminalContext, bottomRef }
 
+  /* ── Floating mode ─── */
+  if (floating) {
+    return (
+      <FloatingWrapper
+        title="AI Assistant"
+        color={C.ink1}
+        defaultW={400}
+        defaultH={500}
+        onClose={onClose}
+        onDock={onToggleFloat}
+      >
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <AiBody {...bodyProps} />
+        </Box>
+      </FloatingWrapper>
+    )
+  }
+
+  /* ── Docked sidebar mode ─── */
   return (
     <Box sx={{
       width, flexShrink: 0,
@@ -152,22 +270,22 @@ Be concise. Show exact shell commands when relevant. Reference specific line num
       />
 
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-
         {/* Header */}
         <Box sx={{
-          px: 2, py: 1, borderBottom: `1px solid ${C.line1}`,
-          display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
+          height: 34, flexShrink: 0,
+          px: 1.5, borderBottom: `1px solid ${C.line1}`,
+          display: 'flex', alignItems: 'center', gap: 0.75,
           bgcolor: C.bg1,
         }}>
-          <AutoAwesomeIcon sx={{ fontSize: 22, color: C.accent }} />
-          <Box sx={{ fontFamily: '"IBM Plex Sans", sans-serif', fontSize: '1rem', fontWeight: 700, color: C.ink1, flex: 1 }}>
+          <AutoAwesomeIcon sx={{ fontSize: 16, color: C.accent }} />
+          <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8125rem', fontWeight: 700, color: C.ink1, flex: 1, letterSpacing: '0.03em' }}>
             AI Assistant
           </Box>
           {codeContext?.path && (
             <Box sx={{
-              fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem',
+              fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem',
               color: C.ink4, bgcolor: C.bg2, border: `1px solid ${C.line2}`,
-              borderRadius: 0.5, px: 1, py: 0.375, maxWidth: 140,
+              borderRadius: 0.5, px: 0.75, py: 0.25, maxWidth: 120,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {codeContext.path.split('/').pop()}
@@ -175,124 +293,24 @@ Be concise. Show exact shell commands when relevant. Reference specific line num
           )}
           {messages.length > 0 && (
             <Tooltip title="Clear chat" arrow>
-              <IconButton onClick={() => setMessages([])} sx={{ color: C.ink4, p: 0.75, '&:hover': { color: C.crit } }}>
-                <DeleteOutlineIcon sx={{ fontSize: 22 }} />
+              <IconButton onClick={() => setMessages([])} sx={{ color: C.ink4, p: 0.5, '&:hover': { color: C.crit } }}>
+                <DeleteOutlineIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
           )}
+          <Tooltip title="Undock to floating" arrow>
+            <IconButton onClick={onToggleFloat} sx={{ color: C.ink4, p: 0.5, '&:hover': { color: C.accent } }}>
+              <OpenInNewIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Close" arrow>
-            <IconButton onClick={onClose} sx={{ color: C.ink4, p: 0.75, '&:hover': { color: C.ink1 } }}>
-              <CloseIcon sx={{ fontSize: 22 }} />
+            <IconButton onClick={onClose} sx={{ color: C.ink4, p: 0.5, '&:hover': { color: C.ink1 } }}>
+              <CloseIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
         </Box>
 
-        {/* Context indicator */}
-        {(codeContext?.path || terminalContext) && (
-          <Box sx={{
-            px: 2, py: 0.75, borderBottom: `1px solid ${C.line1}`,
-            display: 'flex', gap: 0.75, flexWrap: 'wrap', flexShrink: 0,
-          }}>
-            {codeContext?.path && (
-              <Box sx={{
-                fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8125rem',
-                color: C.accent, bgcolor: C.accentSoft, border: `1px solid ${C.accentLine}`,
-                borderRadius: 0.5, px: 1, py: 0.5,
-              }}>
-                ◈ {codeContext.path}
-              </Box>
-            )}
-            {terminalContext && (
-              <Box sx={{
-                fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8125rem',
-                color: C.ok, bgcolor: C.okSoft, border: `1px solid ${C.ok}33`,
-                borderRadius: 0.5, px: 1, py: 0.5,
-              }}>
-                ◈ terminal output
-              </Box>
-            )}
-          </Box>
-        )}
-
-        {/* Messages */}
-        <Box sx={{ flex: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {messages.length === 0 && (
-            <Box sx={{ color: C.ink4, fontFamily: '"IBM Plex Sans", sans-serif', fontSize: '1rem', lineHeight: 1.9, mt: 0.5 }}>
-              Ask anything — code, shell commands, infrastructure.<br /><br />
-              Context auto-included:<br />
-              · Active file in Code Editor<br />
-              · Terminal output (when available)<br /><br />
-              <Box component="span" sx={{ color: C.ink3 }}>Enter ↵ to send</Box>
-            </Box>
-          )}
-          {messages.map((msg, i) => (
-            <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              <Box sx={{
-                fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem',
-                color: msg.role === 'user' ? C.accent : C.ok,
-                textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700,
-              }}>
-                {msg.role === 'user' ? 'You' : 'Assistant'}
-              </Box>
-              <Box sx={{
-                bgcolor: msg.role === 'user' ? C.bg2 : 'transparent',
-                border: msg.role === 'user' ? `1px solid ${C.line2}` : 'none',
-                borderRadius: 1,
-                px: msg.role === 'user' ? 1.5 : 0,
-                py: msg.role === 'user' ? 1 : 0,
-              }}>
-                <AiMessage content={msg.content} />
-              </Box>
-            </Box>
-          ))}
-          {loading && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: C.ink4, fontFamily: '"IBM Plex Sans", sans-serif', fontSize: '1rem' }}>
-              <CircularProgress size={16} sx={{ color: C.accent }} />
-              thinking…
-            </Box>
-          )}
-          <div ref={bottomRef} />
-        </Box>
-
-        {/* Input */}
-        <Box sx={{ borderTop: `1px solid ${C.line1}`, p: 1.25, flexShrink: 0 }}>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-            <Box
-              component="textarea"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
-              }}
-              placeholder="Ask about code or terminal…"
-              rows={3}
-              sx={{
-                flex: 1, bgcolor: C.bg2, border: `1px solid ${C.line2}`, borderRadius: 1,
-                px: 1.5, py: 1, fontSize: '1rem', color: C.ink1,
-                fontFamily: '"IBM Plex Sans", sans-serif', resize: 'none', outline: 'none',
-                lineHeight: 1.65,
-                '&:focus': { borderColor: C.accentLine },
-                '&::placeholder': { color: C.ink4 },
-              }}
-            />
-            <IconButton
-              onClick={send}
-              disabled={!input.trim() || loading}
-              sx={{
-                bgcolor: C.accent, color: C.bg0, borderRadius: 1.5,
-                p: 1.25, flexShrink: 0, mb: 0.25,
-                '&:hover': { bgcolor: C.accent, opacity: 0.85 },
-                '&:disabled': { bgcolor: C.line2, color: C.ink4 },
-              }}
-            >
-              <SendIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Box>
-          <Box sx={{ fontFamily: '"IBM Plex Sans", sans-serif', fontSize: '0.8125rem', color: C.ink4, mt: 0.75 }}>
-            Enter to send · Shift+Enter for newline
-          </Box>
-        </Box>
-
+        <AiBody {...bodyProps} />
       </Box>
     </Box>
   )

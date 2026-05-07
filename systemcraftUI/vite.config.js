@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  base: '/systemcraft/',
+  base: '/',
   plugins: [react()],
   optimizeDeps: {
     include: ['@monaco-editor/react'],

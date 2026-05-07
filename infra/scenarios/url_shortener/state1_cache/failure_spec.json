@@ -1,0 +1,12 @@
+{
+  "state": "state1_cache",
+  "target_rps": 3000,
+  "failure_mode": "none_healthy",
+  "checks": {
+    "redis_hit_ratio_percent": { "op": ">", "value": 88 },
+    "db_cpu_percent": { "op": "<", "value": 20 },
+    "latency_p99_ms": { "op": "<", "value": 15 },
+    "error_rate_percent": { "op": "=", "value": 0 }
+  },
+  "note": "Cache working correctly. All metrics green. This is the healthy baseline before thundering herd is introduced."
+}

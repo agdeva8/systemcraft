@@ -1,0 +1,13 @@
+{
+  "state": "state0_baseline",
+  "target_rps": 3000,
+  "failure_mode": "connection_pool_exhaustion",
+  "checks": {
+    "db_connections_active": { "op": ">", "value": 90 },
+    "db_connections_waiting": { "op": ">", "value": 20 },
+    "latency_p99_ms": { "op": ">", "value": 500 },
+    "error_rate_percent": { "op": ">", "value": 2 },
+    "db_cpu_percent": { "op": "<", "value": 90 }
+  },
+  "note": "Connections are bottleneck, NOT CPU. db_cpu must stay below 90% to confirm."
+}

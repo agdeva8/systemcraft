@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo, useContext } from 'react'
 import { Box, Tooltip, IconButton, Modal } from '@mui/material'
 import Editor from '@monaco-editor/react'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
@@ -7,6 +7,8 @@ import SearchIcon from '@mui/icons-material/Search'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
 import TuneIcon from '@mui/icons-material/Tune'
 import { C } from '../theme'
+import { SessionCtx } from '../components/Session'
+import { applyConfig } from '../lib/api'
 
 let cssInjected = false
 function injectMonacoCss() {
@@ -317,6 +319,7 @@ function FileTree({ activeFile, onSelect, applied }) {
 }
 
 export default function CodePanel({ onApply, onContextChange, onAiOpen }) {
+  const { sessionId } = useContext(SessionCtx)
   const [activeFile, setActiveFile] = useState('app/cache.py')
   const [applied, setApplied] = useState(false)
   const [explorerOpen, setExplorerOpen] = useState(true)
@@ -452,7 +455,11 @@ export default function CodePanel({ onApply, onContextChange, onAiOpen }) {
     applyDecorations()
   }, [activeFile, applied, applyDecorations])
 
-  function handleApply() {
+  async function handleApply() {
+    const content = fileContents[activeFile] || ''
+    if (sessionId) {
+      try { await applyConfig(sessionId, activeFile, content) } catch {}
+    }
     setApplied(true)
     setTodoIndex(0)
     if (decorationsRef.current) decorationsRef.current.clear()

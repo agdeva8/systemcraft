@@ -1,0 +1,14 @@
+{
+  "url_shortener": {
+    "state0_baseline": { "next": ["state1_cache"], "concept": "connection-pool-exhaustion" },
+    "state1_cache": { "next": ["state2_thundering_herd"], "concept": "cache-aside" },
+    "state2_thundering_herd": { "next": ["state3_hotkey"], "concept": "thundering-herd" },
+    "state3_hotkey": { "next": [], "concept": "hot-key" }
+  },
+  "write_scaling": {
+    "state0_baseline": { "next": ["state1_queue"], "concept": "async-queues" },
+    "state1_queue": { "next": ["state2_cassandra"], "concept": "lsm-tree" },
+    "state2_cassandra": { "next": ["state3_backpressure"], "concept": "backpressure" },
+    "state3_backpressure": { "next": [], "concept": "backpressure" }
+  }
+}

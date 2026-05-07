@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Box, Tabs, Tab, Chip, Typography, Tooltip } from '@mui/material'
 import { C } from '../theme'
-import { SHELVES, SCENARIOS, TECHNOLOGIES, ALL_CONCEPTS } from '../data'
+import { ALL_CONCEPTS as STATIC_ALL_CONCEPTS } from '../data'
 
 // Color-coded tech tag palette
 const TECH_COLORS = {
@@ -78,7 +78,7 @@ function ConceptCard({ c, onLaunch }) {
 }
 
 function TechCard({ tech, onLaunch }) {
-  const concept = ALL_CONCEPTS.find(c => c.slug === tech.launchSlug)
+  const concept = STATIC_ALL_CONCEPTS.find(c => c.slug === tech.launchSlug)
   return (
     <Box sx={{
       background: C.bg1, border: `1px solid ${C.line1}`, borderRadius: 2,
@@ -112,7 +112,7 @@ function TechCard({ tech, onLaunch }) {
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
         {tech.concepts.slice(0, 4).map(slug => {
-          const c = ALL_CONCEPTS.find(x => x.slug === slug)
+          const c = STATIC_ALL_CONCEPTS.find(x => x.slug === slug)
           return c ? <TechTag key={slug} tag={c.title.length > 20 ? slug.replace(/-/g, ' ') : c.title} /> : null
         })}
         {tech.concepts.length > 4 && (
@@ -142,10 +142,15 @@ function TechCard({ tech, onLaunch }) {
   )
 }
 
-export default function Landing({ onLaunch }) {
+export default function Landing({ onLaunch, catalog }) {
+  const SHELVES = catalog?.shelves ?? []
+  const SCENARIOS = catalog?.scenarios ?? []
+  const TECHNOLOGIES = catalog?.technologies ?? []
+  const ALL_CONCEPTS = catalog?.all_concepts ?? []
+
   const [tab, setTab] = useState(0)
   const totalConcepts = SHELVES.reduce((a, s) => a + s.concepts.length, 0)
-  const firstConcept = SHELVES[0].concepts[0]
+  const firstConcept = SHELVES[0]?.concepts[0]
 
   return (
     <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -189,7 +194,7 @@ export default function Landing({ onLaunch }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Box
               component="button"
-              onClick={() => onLaunch(firstConcept)}
+              onClick={() => firstConcept && onLaunch(firstConcept)}
               sx={{
                 display: 'inline-flex', alignItems: 'center', gap: 1.5,
                 fontFamily: '"JetBrains Mono", monospace', fontSize: '0.875rem', fontWeight: 500,

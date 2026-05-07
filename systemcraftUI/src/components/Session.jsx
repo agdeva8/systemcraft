@@ -10,9 +10,12 @@ import TutorPanel from '../panels/TutorPanel'
 import TerminalPanel from '../panels/TerminalPanel'
 import CodePanel from '../panels/CodePanel'
 import AiPanel from '../panels/AiPanel'
+import FloatingWrapper from './FloatingWrapper'
+import { metricsEventSource, applyState, setTraffic as apiSetTraffic } from '../lib/api'
+import { useSessionLifecycle } from '../hooks/useSessionLifecycle'
 
 /* ── Shared context so panel components get live props ─────────── */
-const SessionCtx = createContext({})
+export const SessionCtx = createContext({})
 
 /* ── Panel components registered with dockview ─────────────────── */
 function DvTerminal() {
@@ -34,7 +37,6 @@ function DvCode() {
   const { onApply, onContextChange, onAiOpen } = useContext(SessionCtx)
   return <Box sx={{ height: '100%', overflow: 'hidden' }}><CodePanel onApply={onApply} onContextChange={onContextChange} onAiOpen={onAiOpen} /></Box>
 }
-
 const DV_COMPONENTS = {
   terminal: DvTerminal,
   diagram: DvDiagram,
@@ -42,9 +44,30 @@ const DV_COMPONENTS = {
   code: DvCode,
 }
 
+/* ── Panel content renderers for floating mode ─────────────────── */
+function FloatingTerminal() { return <TerminalPanel /> }
+function FloatingDiagram() {
+  const { traffic } = useContext(SessionCtx)
+  return <DiagramPanel traffic={traffic} />
+}
+function FloatingTutor() {
+  const { target, advanced, onAdvance, onFinish } = useContext(SessionCtx)
+  return <TutorPanel target={target} advanced={advanced} onAdvance={onAdvance} onFinish={onFinish} />
+}
+function FloatingCode() {
+  const { onApply, onContextChange, onAiOpen } = useContext(SessionCtx)
+  return <CodePanel onApply={onApply} onContextChange={onContextChange} onAiOpen={onAiOpen} />
+}
+const FLOATING_RENDERERS = {
+  terminal: FloatingTerminal,
+  diagram: FloatingDiagram,
+  tutor: FloatingTutor,
+  code: FloatingCode,
+}
+
 /* ── Tab title renderer ─────────────────────────────────────────── */
 const PANEL_META = {
-  terminal: { title: 'Terminal',       step: '①', sub: 'Observe',    color: C.crit   },
+  terminal: { title: 'Live Console',    step: '①', sub: 'Observe',    color: C.crit   },
   diagram:  { title: 'Architecture',   step: '②', sub: 'Diagnose',   color: C.warn   },
   tutor:    { title: 'Socratic Tutor', step: '③', sub: 'Understand', color: C.accent },
   code:     { title: 'Code Editor',    step: '④', sub: 'Fix',        color: C.ok     },
@@ -88,6 +111,7 @@ const BTN = {
 
 function PanelHeaderActions({ containerApi, activePanel, api }) {
   const [isMax, setIsMax] = useState(false)
+  const { onPopout } = useContext(SessionCtx)
 
   useEffect(() => {
     const unsub = api.onDidActiveChange?.(() => setIsMax(api.isMaximized()))
@@ -105,13 +129,19 @@ function PanelHeaderActions({ containerApi, activePanel, api }) {
   }
 
   const handlePopout = () => {
-    if (activePanel) containerApi.addPopoutGroup(activePanel)
+    if (!activePanel) return
+    const panelId = activePanel.id
+    const panel = containerApi.getPanel(panelId)
+    if (panel) {
+      panel.api.close()
+      onPopout(panelId)
+    }
   }
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 2, paddingRight: 6, height: '100%' }}>
       <button
-        title="Pop out to new window"
+        title="Float panel"
         style={BTN}
         onMouseEnter={e => { e.currentTarget.style.color = '#60a5fa'; e.currentTarget.style.background = '#222639' }}
         onMouseLeave={e => { e.currentTarget.style.color = '#aab4d0'; e.currentTarget.style.background = 'none' }}
@@ -132,7 +162,7 @@ function PanelHeaderActions({ containerApi, activePanel, api }) {
 const THRESHOLDS = {
   p99:       { warn: 200, bad: 400 },
   errorRate: { warn: 0.5, bad: 1.5 },
-  dbConn:    { warn: 80,  bad: 93  },
+  dbConn:    { warn: 12,  bad: 18  },
 }
 function tone(val, key) {
   const t = THRESHOLDS[key]
@@ -169,41 +199,103 @@ const STEPS = ['Baseline', 'Cache layer', 'Thundering herd', 'Hot key']
 
 /* ── Main Session ────────────────────────────────────────────────── */
 export default function Session({ view, onBack, onFinish }) {
-  const [traffic, setTraffic]       = useState(2340)
-  const [advanced, setAdvanced]     = useState(false)
+  const [traffic, setTraffic]         = useState(2340)
+  const [trafficRunning, setTrafficRunning] = useState(false)
+  const trafficDebounce = useRef(null)
+  const [advanced, setAdvanced]       = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
-  const [flashing, setFlashing]     = useState({})
-  const [aiOpen, setAiOpen]         = useState(false)
-  const [codeContext, setCodeContext] = useState(null)
+  const [flashing, setFlashing]       = useState({})
+  const [aiOpen, setAiOpen]           = useState(false)
+  const [aiFloating, setAiFloating]   = useState(false)
+  const [codeContext, setCodeContext]  = useState(null)
+  const [metrics, setMetrics]         = useState(null)
+  const [currentState, setCurrentState] = useState(view?.state || 'state0_baseline')
+  const [transitioning, setTransitioning] = useState(false)
+  const [floatingPanels, setFloatingPanels] = useState([])
   const apiRef = useRef(null)
 
   const target = view?.target || view?.slug || 'cache-aside'
+  const sessionId = view?.session_id
+  const scenario = view?.scenario || 'url_shortener'
+  const { isConnected } = useSessionLifecycle(sessionId)
   const OBJECTIVE = 'Diagnose connection pool exhaustion then add a Redis cache layer — cache hit ratio must exceed 85%.'
 
+  const onTransitionState = useCallback(async (newState) => {
+    if (!sessionId || transitioning) return
+    const prevState = currentState
+    setCurrentState(newState)
+    setTransitioning(true)
+    try {
+      const res = await applyState(sessionId, newState)
+      if (!res.ok) {
+        console.error('State transition rejected, reverting')
+        setCurrentState(prevState)
+      }
+    } catch (e) {
+      console.error('State transition failed:', e)
+      setCurrentState(prevState)
+    } finally {
+      setTransitioning(false)
+    }
+  }, [sessionId, transitioning, currentState])
+
+  // SSE metrics stream
   useEffect(() => {
-    const t = setInterval(() => {
-      setFlashing({ p99: true, dbConn: true })
-      setTimeout(() => setFlashing({}), 800)
-    }, 4500)
-    return () => clearInterval(t)
+    if (!sessionId) return
+    const es = metricsEventSource(sessionId)
+    es.onmessage = (e) => {
+      try { setMetrics(JSON.parse(e.data)) } catch {}
+    }
+    return () => es.close()
+  }, [sessionId])
+
+  // Flash cells when they cross thresholds
+  useEffect(() => {
+    if (!metrics) return
+    const bad = {}
+    if (metrics.latency_p99 >= 400) bad.p99 = true
+    if (metrics.db_connections_active >= 18) bad.dbConn = true
+    if (Object.keys(bad).length) {
+      setFlashing(bad)
+      const t = setTimeout(() => setFlashing({}), 800)
+      return () => clearTimeout(t)
+    }
+  }, [metrics])
+
+  const onPopout = useCallback((panelId) => {
+    setFloatingPanels(prev => prev.includes(panelId) ? prev : [...prev, panelId])
+  }, [])
+
+  const onDockBack = useCallback((panelId) => {
+    setFloatingPanels(prev => prev.filter(id => id !== panelId))
+    const api = apiRef.current
+    if (!api) return
+    const meta = PANEL_META[panelId]
+    if (!meta) return
+    const existingPanels = api.panels.map(p => p.id)
+    const refPanel = existingPanels[0]
+    if (refPanel) {
+      api.addPanel({
+        id: panelId, component: panelId, tabComponent: panelId, title: meta.title,
+        position: { direction: 'within', referencePanel: refPanel },
+      })
+    } else {
+      api.addPanel({ id: panelId, component: panelId, tabComponent: panelId, title: meta.title })
+    }
   }, [])
 
   const onReady = useCallback((event) => {
     apiRef.current = event.api
 
-    // Tutor — left, anchors the left group
     event.api.addPanel({ id: 'tutor', component: 'tutor', tabComponent: 'tutor', title: 'Tutor' })
-    // Terminal — same group as Tutor (tabbed)
     event.api.addPanel({
-      id: 'terminal', component: 'terminal', tabComponent: 'terminal', title: 'Terminal',
+      id: 'terminal', component: 'terminal', tabComponent: 'terminal', title: 'Live Console',
       position: { direction: 'within', referencePanel: 'tutor' },
     })
-    // Code Editor — same group as Tutor/Terminal (tabbed)
     event.api.addPanel({
       id: 'code', component: 'code', tabComponent: 'code', title: 'Code Editor',
       position: { direction: 'within', referencePanel: 'tutor' },
     })
-    // Architecture — right column, full height
     event.api.addPanel({
       id: 'diagram', component: 'diagram', tabComponent: 'diagram', title: 'Architecture',
       position: { direction: 'right', referencePanel: 'tutor' },
@@ -214,11 +306,18 @@ export default function Session({ view, onBack, onFinish }) {
     traffic,
     advanced,
     target,
+    sessionId,
+    scenario,
+    currentState,
+    transitioning,
+    metrics,
+    onTransitionState,
     onAdvance: () => setAdvanced(true),
     onFinish,
     onApply: () => setAdvanced(true),
     onContextChange: setCodeContext,
     onAiOpen: () => setAiOpen(true),
+    onPopout,
   }
 
   return (
@@ -270,7 +369,10 @@ export default function Session({ view, onBack, onFinish }) {
             )
           })}
           <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1.5, pl: 2 }}>
-            <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.625rem', color: C.ink3 }}>sc_a8f1c2</Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: isConnected ? C.ok : C.crit, flexShrink: 0 }} />
+              <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.625rem', color: C.ink3 }}>sc_{sessionId?.slice(0,8) ?? '…'}</Box>
+            </Box>
             <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.625rem', color: C.ink2, border: `1px solid ${C.line3}`, borderRadius: 0.75, px: 1, py: 0.25 }}>$0.18</Box>
             <Box
               component="button"
@@ -306,28 +408,69 @@ export default function Session({ view, onBack, onFinish }) {
 
         {/* ── Metrics bar ───────────────────────────────────────── */}
         <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'stretch', borderBottom: `1px solid ${C.line1}`, bgcolor: C.bg1, overflowX: 'auto' }}>
-          <Box sx={{ px: 2, py: 0.75, borderRight: `1px solid ${C.line1}`, display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 210 }}>
+          <Box sx={{ px: 2, py: 0.75, borderRight: `1px solid ${C.line1}`, display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 240 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.5625rem', fontWeight: 700, color: C.ink3, letterSpacing: '0.08em', textTransform: 'uppercase' }}>↑ Load — drag to stress test</Box>
-              <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.875rem', fontWeight: 700, color: traffic > 7000 ? C.crit : traffic > 4000 ? C.warn : C.ink1 }}>
-                {traffic.toLocaleString()} <Box component="span" sx={{ fontSize: '0.5rem', color: C.ink3 }}>req/s</Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.875rem', fontWeight: 700, color: trafficRunning ? (traffic > 7000 ? C.crit : traffic > 4000 ? C.warn : C.ink1) : C.ink3 }}>
+                  {traffic.toLocaleString()} <Box component="span" sx={{ fontSize: '0.5rem', color: C.ink3 }}>VUs</Box>
+                </Box>
+                <Box
+                  component="button"
+                  onClick={() => {
+                    if (!sessionId) return
+                    const next = !trafficRunning
+                    setTrafficRunning(next)
+                    apiSetTraffic(sessionId, next ? traffic : 0)
+                  }}
+                  sx={{
+                    fontFamily: '"JetBrains Mono"', fontSize: '0.5625rem', fontWeight: 700,
+                    px: 0.75, py: 0.25, border: '1px solid',
+                    borderColor: trafficRunning ? C.crit : C.accentLine,
+                    bgcolor: trafficRunning ? 'rgba(255,80,80,0.1)' : C.accentSoft,
+                    color: trafficRunning ? C.crit : C.accent,
+                    borderRadius: '3px', cursor: 'pointer', letterSpacing: '0.08em',
+                    textTransform: 'uppercase', lineHeight: 1.4,
+                    '&:hover': { opacity: 0.8 },
+                  }}
+                >
+                  {trafficRunning ? '■ stop' : '▶ start'}
+                </Box>
               </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.5rem', fontWeight: 700, color: C.ink3, flexShrink: 0 }}>100</Box>
-              <Box component="input" type="range" min={100} max={10000} value={traffic} onChange={e => setTraffic(+e.target.value)}
-                sx={{ flex: 1, accentColor: traffic > 7000 ? C.crit : traffic > 4000 ? C.warn : C.accent, height: 4, cursor: 'pointer' }} />
+              <Box component="input" type="range" min={100} max={10000} value={traffic}
+                onChange={e => {
+                  const v = +e.target.value
+                  setTraffic(v)
+                  if (!trafficRunning || !sessionId) return
+                  clearTimeout(trafficDebounce.current)
+                  trafficDebounce.current = setTimeout(() => apiSetTraffic(sessionId, v), 300)
+                }}
+                sx={{ flex: 1, accentColor: trafficRunning ? (traffic > 7000 ? C.crit : traffic > 4000 ? C.warn : C.accent) : C.ink3, height: 4, cursor: 'pointer', opacity: trafficRunning ? 1 : 0.5 }} />
               <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.5rem', fontWeight: 700, color: C.ink3, flexShrink: 0 }}>10k</Box>
             </Box>
           </Box>
-          <MetricCell label="P99 latency" value="450ms" raw={450} metricKey="p99" flashing={flashing.p99} />
-          <MetricCell label="Error rate"  value="1.5%"  raw={1.5} metricKey="errorRate" />
-          <MetricCell label="DB conn"     value="94/100" raw={94}  metricKey="dbConn" unit="94% pool used" flashing={flashing.dbConn} />
-          <MetricCell label="Cache hit"   value="—"      unit="no cache yet" />
-          <MetricCell label="DB cpu"      value="31%" />
+          <MetricCell label="P99 latency"
+            value={metrics ? `${metrics.latency_p99 ?? 0}ms` : '…'}
+            raw={metrics?.latency_p99 ?? 0} metricKey="p99" flashing={flashing.p99} />
+          <MetricCell label="Error rate"
+            value={metrics ? `${metrics.error_rate ?? 0}%` : '…'}
+            raw={metrics?.error_rate ?? 0} metricKey="errorRate" />
+          <MetricCell label="DB conn"
+            value={metrics ? `${metrics.db_connections_active ?? 0}/${metrics.db_pool_size ?? 20}` : '…'}
+            raw={metrics?.db_connections_active ?? 0} metricKey="dbConn"
+            unit={metrics ? `${Math.round((metrics.db_connections_active ?? 0) / (metrics.db_pool_size ?? 20) * 100)}% pool used` : ''}
+            flashing={flashing.dbConn} />
+          <MetricCell label="Cache hit"
+            value={metrics?.redis_hit_ratio != null ? `${metrics.redis_hit_ratio}%` : '—'}
+            unit={metrics?.redis_hit_ratio == null ? 'no cache yet' : ''} />
+          <MetricCell label="DB cpu"
+            value={metrics ? `${metrics.db_cpu ?? 0}%` : '…'} />
         </Box>
 
-        {/* ── Dockview workspace + AI sidebar ──────────────────── */}
+        {/* ── Dockview workspace + docked AI sidebar ──────────── */}
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
           <Box sx={{ flex: 1, minWidth: 0, position: 'relative' }}>
             <DockviewReact
@@ -339,13 +482,51 @@ export default function Session({ view, onBack, onFinish }) {
               style={{ height: '100%', width: '100%' }}
             />
           </Box>
-          {aiOpen && (
+
+          {/* AI panel — docked sidebar (default) */}
+          {aiOpen && !aiFloating && (
             <AiPanel
+              sessionId={sessionId}
               codeContext={codeContext}
               onClose={() => setAiOpen(false)}
+              floating={false}
+              onToggleFloat={() => setAiFloating(true)}
             />
           )}
         </Box>
+
+        {/* AI panel — floating overlay */}
+        {aiOpen && aiFloating && (
+          <AiPanel
+            sessionId={sessionId}
+            codeContext={codeContext}
+            onClose={() => { setAiOpen(false); setAiFloating(false) }}
+            floating
+            onToggleFloat={() => setAiFloating(false)}
+          />
+        )}
+
+        {/* Floating dockview panels */}
+        {floatingPanels.map((panelId, idx) => {
+          const meta = PANEL_META[panelId]
+          const Renderer = FLOATING_RENDERERS[panelId]
+          if (!meta || !Renderer) return null
+          return (
+            <FloatingWrapper
+              key={panelId}
+              title={meta.title}
+              color={meta.color}
+              defaultW={500}
+              defaultH={400}
+              defaultX={80 + idx * 30}
+              defaultY={120 + idx * 30}
+              onClose={() => onDockBack(panelId)}
+              onDock={() => onDockBack(panelId)}
+            >
+              <Renderer />
+            </FloatingWrapper>
+          )
+        })}
 
       </Box>
     </SessionCtx.Provider>
