@@ -1,0 +1,14 @@
+# Exclude raw HTML files — 5MB each, ~400MB total
+# Only keep knowledge-base/md/ (clean markdown, LLM-readable)
+knowledge-base/**/*.html
+knowledge-base/index.html
+
+# IDE
+.idea/
+
+# macOS
+.DS_Store
+
+# logs
+mcp-server.log
+*.log
