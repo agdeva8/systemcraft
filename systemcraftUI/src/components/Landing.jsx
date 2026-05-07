@@ -244,8 +244,8 @@ export default function Landing({ onLaunch }) {
       </Box>
 
       {/* Loop steps */}
-      <Box sx={{ px: { xs: 3, sm: 5, lg: 8 }, py: 1.75, borderBottom: `1px solid ${C.line1}`, bgcolor: C.bg1, overflowX: 'auto' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0, whiteSpace: 'nowrap' }}>
+      <Box sx={{ px: { xs: 3, sm: 5, lg: 8 }, py: 1.75, borderBottom: `1px solid ${C.line1}`, bgcolor: C.bg1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0 }}>
           {['Boot broken infra', 'Watch metrics turn red', 'Form hypothesis', 'Socratic question back', 'Apply fix in editor', 'Verify → advance'].map((step, i, arr) => (
             <Box key={step} sx={{ display: 'flex', alignItems: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 0.75 }}>
