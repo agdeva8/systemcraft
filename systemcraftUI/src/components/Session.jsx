@@ -3,11 +3,13 @@ import { Box, Chip, Tooltip } from '@mui/material'
 import { DockviewReact } from 'dockview'
 import { themeAbyss } from 'dockview-core'
 import 'dockview/dist/styles/dockview.css'
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import { C } from '../theme'
 import DiagramPanel from '../panels/DiagramPanel'
 import TutorPanel from '../panels/TutorPanel'
 import TerminalPanel from '../panels/TerminalPanel'
 import CodePanel from '../panels/CodePanel'
+import AiPanel from '../panels/AiPanel'
 
 /* ── Shared context so panel components get live props ─────────── */
 const SessionCtx = createContext({})
@@ -29,8 +31,8 @@ function DvTutor() {
   )
 }
 function DvCode() {
-  const { onApply } = useContext(SessionCtx)
-  return <Box sx={{ height: '100%', overflow: 'hidden' }}><CodePanel onApply={onApply} /></Box>
+  const { onApply, onContextChange, onAiOpen } = useContext(SessionCtx)
+  return <Box sx={{ height: '100%', overflow: 'hidden' }}><CodePanel onApply={onApply} onContextChange={onContextChange} onAiOpen={onAiOpen} /></Box>
 }
 
 const DV_COMPONENTS = {
@@ -79,7 +81,7 @@ const DV_TAB_COMPONENTS = {
 const BTN = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   width: 22, height: 22, borderRadius: 3, border: 'none', background: 'none',
-  cursor: 'pointer', color: '#7c87a4', flexShrink: 0,
+  cursor: 'pointer', color: '#aab4d0', flexShrink: 0,
   transition: 'color 0.12s, background 0.12s',
   fontFamily: '"JetBrains Mono", monospace', fontSize: 11,
 }
@@ -112,14 +114,14 @@ function PanelHeaderActions({ containerApi, activePanel, api }) {
         title="Pop out to new window"
         style={BTN}
         onMouseEnter={e => { e.currentTarget.style.color = '#60a5fa'; e.currentTarget.style.background = '#222639' }}
-        onMouseLeave={e => { e.currentTarget.style.color = '#7c87a4'; e.currentTarget.style.background = 'none' }}
+        onMouseLeave={e => { e.currentTarget.style.color = '#aab4d0'; e.currentTarget.style.background = 'none' }}
         onClick={handlePopout}
       >↗</button>
       <button
         title={isMax ? 'Restore' : 'Maximize'}
-        style={{ ...BTN, color: isMax ? '#60a5fa' : '#7c87a4' }}
+        style={{ ...BTN, color: isMax ? '#60a5fa' : '#aab4d0' }}
         onMouseEnter={e => { e.currentTarget.style.color = '#f0f2f8'; e.currentTarget.style.background = '#222639' }}
-        onMouseLeave={e => { e.currentTarget.style.color = isMax ? '#60a5fa' : '#7c87a4'; e.currentTarget.style.background = 'none' }}
+        onMouseLeave={e => { e.currentTarget.style.color = isMax ? '#60a5fa' : '#aab4d0'; e.currentTarget.style.background = 'none' }}
         onClick={handleMax}
       >{isMax ? '⊟' : '⊞'}</button>
     </div>
@@ -171,6 +173,8 @@ export default function Session({ view, onBack, onFinish }) {
   const [advanced, setAdvanced]     = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [flashing, setFlashing]     = useState({})
+  const [aiOpen, setAiOpen]         = useState(false)
+  const [codeContext, setCodeContext] = useState(null)
   const apiRef = useRef(null)
 
   const target = view?.target || view?.slug || 'cache-aside'
@@ -213,6 +217,8 @@ export default function Session({ view, onBack, onFinish }) {
     onAdvance: () => setAdvanced(true),
     onFinish,
     onApply: () => setAdvanced(true),
+    onContextChange: setCodeContext,
+    onAiOpen: () => setAiOpen(true),
   }
 
   return (
@@ -266,6 +272,23 @@ export default function Session({ view, onBack, onFinish }) {
           <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1.5, pl: 2 }}>
             <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.625rem', color: C.ink3 }}>sc_a8f1c2</Box>
             <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.625rem', color: C.ink2, border: `1px solid ${C.line3}`, borderRadius: 0.75, px: 1, py: 0.25 }}>$0.18</Box>
+            <Box
+              component="button"
+              onClick={() => setAiOpen(o => !o)}
+              sx={{
+                display: 'inline-flex', alignItems: 'center', gap: 0.75,
+                fontFamily: '"IBM Plex Sans", sans-serif', fontSize: '0.875rem', fontWeight: 700,
+                color: aiOpen ? C.bg0 : C.accent,
+                bgcolor: aiOpen ? C.accent : C.accentSoft,
+                border: `1.5px solid ${C.accent}`,
+                borderRadius: 1, px: 1.5, py: 0.25, cursor: 'pointer',
+                transition: 'all 0.15s', lineHeight: 1,
+                '&:hover': { bgcolor: C.accent, color: C.bg0 },
+              }}
+            >
+              <AutoAwesomeIcon sx={{ fontSize: 17 }} />
+              AI
+            </Box>
           </Box>
         </Box>
 
@@ -304,16 +327,24 @@ export default function Session({ view, onBack, onFinish }) {
           <MetricCell label="DB cpu"      value="31%" />
         </Box>
 
-        {/* ── Dockview workspace ────────────────────────────────── */}
-        <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
-          <DockviewReact
-            components={DV_COMPONENTS}
-            tabComponents={DV_TAB_COMPONENTS}
-            rightHeaderActionsComponent={PanelHeaderActions}
-            onReady={onReady}
-            theme={themeAbyss}
-            style={{ height: '100%', width: '100%' }}
-          />
+        {/* ── Dockview workspace + AI sidebar ──────────────────── */}
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
+          <Box sx={{ flex: 1, minWidth: 0, position: 'relative' }}>
+            <DockviewReact
+              components={DV_COMPONENTS}
+              tabComponents={DV_TAB_COMPONENTS}
+              rightHeaderActionsComponent={PanelHeaderActions}
+              onReady={onReady}
+              theme={themeAbyss}
+              style={{ height: '100%', width: '100%' }}
+            />
+          </Box>
+          {aiOpen && (
+            <AiPanel
+              codeContext={codeContext}
+              onClose={() => setAiOpen(false)}
+            />
+          )}
         </Box>
 
       </Box>

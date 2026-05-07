@@ -8,7 +8,6 @@ const TABS = [
   { id: 'postgres',  label: 'postgres',  status: 'crit',   prompt: 'postgres=#' },
   { id: 'redis',     label: 'redis',     status: 'ok',     prompt: 'redis>' },
   { id: 'app-logs',  label: 'app logs',  status: 'warn',   prompt: '$' },
-  { id: 'llm',       label: 'llm',       status: 'accent', prompt: '#' },
 ]
 
 const statusColor = s => ({ crit: C.crit, ok: C.ok, warn: C.warn, accent: C.accent }[s] || C.ink3)
@@ -54,15 +53,7 @@ instantaneous_ops_per_sec:0`}</Box>
     </Box>
   )
 
-  return (
-    <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.875rem', fontWeight: 600, lineHeight: 1.8, color: C.ink1 }}>
-      <Box sx={{ color: C.accent }}># socratic tutor — questions only, never answers</Box>
-      <Box>concept_target: <Box component="span" sx={{ color: C.accent }}>cache-aside</Box></Box>
-      <Box>model: <Box component="span" sx={{ color: C.ink1 }}>claude-opus-4-5</Box></Box>
-      <Box>tokens: <Box component="span" sx={{ color: C.ink1 }}>1,204</Box></Box>
-      <Box>cost: <Box component="span" sx={{ color: C.ok }}>$0.18</Box></Box>
-    </Box>
-  )
+  return null
 }
 
 export default function TerminalPanel() {

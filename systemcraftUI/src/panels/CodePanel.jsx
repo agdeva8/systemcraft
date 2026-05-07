@@ -1,14 +1,13 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { Box, Chip, Tooltip, IconButton, Modal, CircularProgress } from '@mui/material'
+import { Box, Tooltip, IconButton, Modal } from '@mui/material'
 import Editor from '@monaco-editor/react'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import SearchIcon from '@mui/icons-material/Search'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh'
+import TuneIcon from '@mui/icons-material/Tune'
 import { C } from '../theme'
 
-// Inject Monaco glyph + line highlight CSS once
 let cssInjected = false
 function injectMonacoCss() {
   if (cssInjected) return
@@ -29,10 +28,43 @@ function injectMonacoCss() {
   document.head.appendChild(style)
 }
 
+const EDITOR_THEMES = [
+  { value: 'sc-dark', label: 'SystemCraft Dark' },
+  { value: 'vs-dark', label: 'VS Dark' },
+  { value: 'vs', label: 'VS Light' },
+  { value: 'hc-black', label: 'High Contrast' },
+]
+
+const EDITOR_TYPES = [
+  { value: 'default', label: 'Default' },
+  { value: 'vim', label: 'Vim', soon: true },
+  { value: 'emacs', label: 'Emacs', soon: true },
+]
+
+const DEFAULT_SETTINGS = {
+  theme: 'sc-dark',
+  fontSize: 13,
+  tabSize: 2,
+  wordWrap: 'off',
+  minimap: false,
+  editorType: 'default',
+}
+
+function loadSettings() {
+  try {
+    const s = localStorage.getItem('sc_editor_settings')
+    return s ? { ...DEFAULT_SETTINGS, ...JSON.parse(s) } : DEFAULT_SETTINGS
+  } catch { return DEFAULT_SETTINGS }
+}
+
+function saveSettings(s) {
+  try { localStorage.setItem('sc_editor_settings', JSON.stringify(s)) } catch {}
+}
+
 const SC_DARK_THEME = {
   base: 'vs-dark', inherit: true,
   rules: [
-    { token: 'comment', foreground: '4a5568', fontStyle: 'italic' },
+    { token: 'comment', foreground: 'a0a8c4', fontStyle: 'italic' },
     { token: 'keyword', foreground: '818cf8' },
     { token: 'string', foreground: '34d399' },
     { token: 'number', foreground: 'fbbf24' },
@@ -40,9 +72,9 @@ const SC_DARK_THEME = {
   ],
   colors: {
     'editor.background': '#1c1f2e',
-    'editor.foreground': '#e8eaf0',
-    'editorLineNumber.foreground': '#3d4459',
-    'editorLineNumber.activeForeground': '#9ba3b8',
+    'editor.foreground': '#f0f2f8',
+    'editorLineNumber.foreground': '#8088a8',
+    'editorLineNumber.activeForeground': '#d4dcee',
     'editor.selectionBackground': '#303650',
     'editor.lineHighlightBackground': '#22263688',
     'editorCursor.foreground': '#60a5fa',
@@ -284,7 +316,7 @@ function FileTree({ activeFile, onSelect, applied }) {
   )
 }
 
-export default function CodePanel({ onApply }) {
+export default function CodePanel({ onApply, onContextChange, onAiOpen }) {
   const [activeFile, setActiveFile] = useState('app/cache.py')
   const [applied, setApplied] = useState(false)
   const [explorerOpen, setExplorerOpen] = useState(true)
@@ -293,10 +325,9 @@ export default function CodePanel({ onApply }) {
   )
   const [todoLines, setTodoLines] = useState({})
   const [todoIndex, setTodoIndex] = useState(0)
-  const [syntaxOpen, setSyntaxOpen] = useState(false)
-  const [syntaxQuery, setSyntaxQuery] = useState('')
-  const [syntaxResult, setSyntaxResult] = useState('')
-  const [syntaxLoading, setSyntaxLoading] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settings, setSettings] = useState(loadSettings)
+
   const editorRef = useRef(null)
   const monacoRef = useRef(null)
   const decorationsRef = useRef(null)
@@ -329,9 +360,7 @@ export default function CodePanel({ onApply }) {
     const lines = getTodoLines(content)
     setTodoLines(prev => ({ ...prev, [activeFile]: lines }))
 
-    if (decorationsRef.current) {
-      decorationsRef.current.clear()
-    }
+    if (decorationsRef.current) decorationsRef.current.clear()
 
     if (lines.length > 0 && !applied) {
       decorationsRef.current = editor.createDecorationsCollection(
@@ -349,14 +378,12 @@ export default function CodePanel({ onApply }) {
   }, [activeFile, fileContents, applied])
 
   const allTodos = useMemo(() => {
-    const todos = Object.entries(todoLines).flatMap(([file, lines]) =>
-      lines.map((line, idx) => ({ file, line, globalIdx: 0 }))
+    return Object.entries(todoLines).flatMap(([f, lines]) =>
+      lines.map(line => ({ file: f, line }))
     ).sort((a, b) => {
-      const fileOrder = Object.keys(FILES)
-      return fileOrder.indexOf(a.file) - fileOrder.indexOf(b.file) ||
-             a.line - b.line
-    }).map((todo, idx) => ({ ...todo, globalIdx: idx }))
-    return todos
+      const order = Object.keys(FILES)
+      return order.indexOf(a.file) - order.indexOf(b.file) || a.line - b.line
+    }).map((t, idx) => ({ ...t, globalIdx: idx }))
   }, [todoLines])
 
   const jumpToTodo = useCallback((direction = 'next') => {
@@ -364,18 +391,12 @@ export default function CodePanel({ onApply }) {
     if (!editor || allTodos.length === 0) return
 
     let idx = todoIndex
-    if (direction === 'next') {
-      idx = (todoIndex + 1) % allTodos.length
-    } else if (direction === 'prev') {
-      idx = (todoIndex - 1 + allTodos.length) % allTodos.length
-    }
-    // 'current' keeps idx at todoIndex
+    if (direction === 'next') idx = (todoIndex + 1) % allTodos.length
+    else if (direction === 'prev') idx = (todoIndex - 1 + allTodos.length) % allTodos.length
 
     const todo = allTodos[idx]
     setTodoIndex(idx)
     setActiveFile(todo.file)
-
-    // Jump to line in new file after state updates
     setTimeout(() => {
       if (editorRef.current) {
         editorRef.current.revealLineInCenter(todo.line)
@@ -386,52 +407,27 @@ export default function CodePanel({ onApply }) {
   }, [allTodos, todoIndex])
 
   const openSearch = useCallback(() => {
-    const editor = editorRef.current
-    if (editor) {
-      editor.getAction('actions.find')?.run()
-    }
+    editorRef.current?.getAction('actions.find')?.run()
   }, [])
 
-  const querySyntaxHelper = useCallback(async () => {
-    if (!syntaxQuery.trim()) return
-    setSyntaxLoading(true)
-    setSyntaxResult('')
-    try {
-      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-      if (!apiKey) {
-        setSyntaxResult('Error: VITE_ANTHROPIC_API_KEY not set in .env')
-        setSyntaxLoading(false)
-        return
-      }
-      const selectedText = editorRef.current?.getSelectedText() || ''
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-3-5-haiku-20241022',
-          max_tokens: 300,
-          system: 'You are a syntax helper. Respond with ONLY code patterns/syntax. No explanations, no prose. Just the code.',
-          messages: [
-            {
-              role: 'user',
-              content: `${selectedText ? `Current code:\n\`\`\`\n${selectedText}\n\`\`\`\n\n` : ''}Request: ${syntaxQuery}`,
-            },
-          ],
-        }),
+  const updateSetting = useCallback((key, value) => {
+    setSettings(prev => {
+      const next = { ...prev, [key]: value }
+      saveSettings(next)
+      return next
+    })
+  }, [])
+
+  // Report active file context to Session-level AI panel
+  useEffect(() => {
+    if (onContextChange) {
+      onContextChange({
+        path: activeFile,
+        content: fileContents[activeFile] || '',
+        language: FILES[activeFile]?.language || 'text',
       })
-      const data = await response.json()
-      const result = data.content?.[0]?.text || 'No response'
-      setSyntaxResult(result)
-    } catch (err) {
-      setSyntaxResult(`Error: ${err.message}`)
-    } finally {
-      setSyntaxLoading(false)
     }
-  }, [syntaxQuery])
+  }, [activeFile, onContextChange])
 
   function handleEditorWillMount(monaco) {
     injectMonacoCss()
@@ -442,14 +438,12 @@ export default function CodePanel({ onApply }) {
     editorRef.current = editor
     monacoRef.current = monaco
     applyDecorations()
-    // Jump to first TODO on mount
     setTimeout(() => jumpToTodo('current'), 100)
   }
 
-  // Scan all files for TODOs on mount
   useEffect(() => {
-    Object.entries(FILES).forEach(([path, file]) => {
-      const lines = getTodoLines(file.content)
+    Object.entries(FILES).forEach(([path, f]) => {
+      const lines = getTodoLines(f.content)
       setTodoLines(prev => ({ ...prev, [path]: lines }))
     })
   }, [])
@@ -513,9 +507,9 @@ export default function CodePanel({ onApply }) {
               <SearchIcon sx={{ fontSize: 14 }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Syntax helper (quick question)" arrow>
-            <IconButton size="small" onClick={() => setSyntaxOpen(true)} sx={{ color: C.ink4, p: 0.5, '&:hover': { color: C.accent } }}>
-              <AutoFixHighIcon sx={{ fontSize: 14 }} />
+          <Tooltip title="Editor settings" arrow>
+            <IconButton size="small" onClick={() => setSettingsOpen(true)} sx={{ color: C.ink4, p: 0.5, '&:hover': { color: C.ink2 } }}>
+              <TuneIcon sx={{ fontSize: 14 }} />
             </IconButton>
           </Tooltip>
           {hasTodo && (
@@ -528,7 +522,7 @@ export default function CodePanel({ onApply }) {
                     fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem',
                     color: C.warn, bgcolor: C.warnSoft, border: `1px solid ${C.warn}44`,
                     borderRadius: 1, px: 0.75, py: 0.4, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 0.3,
+                    display: 'flex', alignItems: 'center',
                     '&:hover': { bgcolor: 'rgba(251,191,36,0.18)' },
                   }}
                 >
@@ -539,7 +533,6 @@ export default function CodePanel({ onApply }) {
                 fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem',
                 color: C.warn, bgcolor: C.warnSoft, border: `1px solid ${C.warn}44`,
                 borderRadius: 1, px: 0.75, py: 0.4,
-                display: 'flex', alignItems: 'center', gap: 0.3,
               }}>
                 {totalTodos > 0 ? todoIndex + 1 : 0}/{totalTodos}
               </Box>
@@ -551,7 +544,7 @@ export default function CodePanel({ onApply }) {
                     fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem',
                     color: C.warn, bgcolor: C.warnSoft, border: `1px solid ${C.warn}44`,
                     borderRadius: 1, px: 0.75, py: 0.4, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 0.3,
+                    display: 'flex', alignItems: 'center',
                     '&:hover': { bgcolor: 'rgba(251,191,36,0.18)' },
                   }}
                 >
@@ -566,19 +559,15 @@ export default function CodePanel({ onApply }) {
             </Box>
           )}
 
-          {/* Tab scroll arrows + tabs */}
+          {/* Tab scroll + tabs */}
           <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', overflow: 'hidden', ml: 0.5 }}>
             <IconButton size="small" onClick={() => scrollTabs(-1)} sx={{ color: C.ink4, p: 0.25, flexShrink: 0 }}>
               <ChevronLeftIcon sx={{ fontSize: 14 }} />
             </IconButton>
-            <Box
-              ref={tabsScrollRef}
-              sx={{ display: 'flex', overflow: 'hidden', flex: 1, scrollBehavior: 'smooth' }}
-            >
+            <Box ref={tabsScrollRef} sx={{ display: 'flex', overflow: 'hidden', flex: 1, scrollBehavior: 'smooth' }}>
               {openTabs.map(path => {
                 const fname = path.split('/').pop()
-                const fileTodos = getTodoLines(fileContents[path] || '')
-                const hasFTodo = fileTodos.length > 0 && !applied
+                const hasFTodo = getTodoLines(fileContents[path] || '').length > 0 && !applied
                 return (
                   <Box
                     key={path}
@@ -590,17 +579,13 @@ export default function CodePanel({ onApply }) {
                       cursor: 'pointer',
                       bgcolor: activeFile === path ? C.bg1 : 'transparent',
                       color: activeFile === path ? C.ink1 : C.ink3,
-                      position: 'relative',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
+                      position: 'relative', whiteSpace: 'nowrap', flexShrink: 0,
                       transition: 'color 0.15s',
                       '&:hover': { color: activeFile === path ? C.ink1 : C.ink2 },
                     }}
                   >
                     <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.625rem' }}>{fname}</Box>
-                    {hasFTodo && (
-                      <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: C.warn, flexShrink: 0 }} />
-                    )}
+                    {hasFTodo && <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: C.warn, flexShrink: 0 }} />}
                     <Box
                       component="span"
                       onClick={(e) => closeTab(path, e)}
@@ -629,37 +614,43 @@ export default function CodePanel({ onApply }) {
           </Box>
         </Box>
 
-        {/* Monaco editor */}
-        <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-          {file && (
-            <Editor
-              height="100%"
-              language={file.language}
-              value={fileContents[activeFile]}
-              theme="sc-dark"
-              beforeMount={handleEditorWillMount}
-              onMount={handleEditorDidMount}
-              onChange={val => setFileContents(prev => ({ ...prev, [activeFile]: val || '' }))}
-              options={{
-                fontSize: 13,
-                fontFamily: '"JetBrains Mono", monospace',
-                lineNumbers: 'on',
-                glyphMargin: true,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                wordWrap: 'off',
-                folding: true,
-                renderLineHighlight: 'line',
-                lineDecorationsWidth: 2,
-                lineNumbersMinChars: 3,
-                padding: { top: 8, bottom: 8 },
-                smoothScrolling: true,
-                cursorBlinking: 'smooth',
-                bracketPairColorization: { enabled: true },
-                find: { autoFindInSelection: 'multiline' },
-              }}
-            />
-          )}
+        {/* Editor + AI panel row */}
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
+
+          {/* Monaco */}
+          <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+            {file && (
+              <Editor
+                height="100%"
+                language={file.language}
+                value={fileContents[activeFile]}
+                theme={settings.theme}
+                beforeMount={handleEditorWillMount}
+                onMount={handleEditorDidMount}
+                onChange={val => setFileContents(prev => ({ ...prev, [activeFile]: val || '' }))}
+                options={{
+                  fontSize: settings.fontSize,
+                  fontFamily: '"JetBrains Mono", monospace',
+                  tabSize: settings.tabSize,
+                  lineNumbers: 'on',
+                  glyphMargin: true,
+                  minimap: { enabled: settings.minimap },
+                  scrollBeyondLastLine: false,
+                  wordWrap: settings.wordWrap,
+                  folding: true,
+                  renderLineHighlight: 'line',
+                  lineDecorationsWidth: 2,
+                  lineNumbersMinChars: 3,
+                  padding: { top: 8, bottom: 8 },
+                  smoothScrolling: true,
+                  cursorBlinking: 'smooth',
+                  bracketPairColorization: { enabled: true },
+                  find: { autoFindInSelection: 'multiline' },
+                }}
+              />
+            )}
+          </Box>
+
         </Box>
 
         {/* Apply bar */}
@@ -701,67 +692,176 @@ export default function CodePanel({ onApply }) {
         </Box>
       </Box>
 
-      {/* Syntax helper modal */}
-      <Modal open={syntaxOpen} onClose={() => setSyntaxOpen(false)} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Editor settings modal */}
+      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Box sx={{
           bgcolor: C.bg1, border: `1px solid ${C.line1}`, borderRadius: 2,
-          p: 2.5, width: '90%', maxWidth: 500,
+          p: 2.5, width: '90%', maxWidth: 420,
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         }}>
-          <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem', color: C.ink4, mb: 1.5, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            Syntax Helper
+          <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem', color: C.ink4, mb: 2, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            Editor Settings
           </Box>
-          <Box
-            component="textarea"
-            value={syntaxQuery}
-            onChange={e => setSyntaxQuery(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) querySyntaxHelper() }}
-            placeholder="e.g., make this a random variable, convert to async, add error handling…"
-            rows={2}
-            sx={{
-              width: '100%', bgcolor: C.bg2, border: `1px solid ${C.line2}`, borderRadius: 1,
-              px: 1.5, py: 1, fontSize: '0.875rem', color: C.ink1, fontFamily: 'inherit',
-              resize: 'none', outline: 'none', mb: 1.5,
-              '&:focus': { borderColor: C.accentLine },
-              '&::placeholder': { color: C.ink4 },
-            }}
-          />
-          {syntaxResult && (
-            <Box sx={{
-              bgcolor: C.bg2, border: `1px solid ${C.line2}`, borderRadius: 1,
-              p: 1.5, mb: 1.5, maxHeight: 200, overflowY: 'auto',
-              fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8125rem',
-              color: C.ok, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-            }}>
-              {syntaxResult}
+
+          {/* Theme */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.625rem', color: C.ink4, mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Theme</Box>
+            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+              {EDITOR_THEMES.map(t => (
+                <Box
+                  key={t.value}
+                  component="button"
+                  onClick={() => updateSetting('theme', t.value)}
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem',
+                    px: 1.25, py: 0.6, borderRadius: 1, cursor: 'pointer',
+                    border: `1px solid ${settings.theme === t.value ? C.accent : C.line2}`,
+                    bgcolor: settings.theme === t.value ? C.accentSoft : 'transparent',
+                    color: settings.theme === t.value ? C.accent : C.ink3,
+                    transition: 'all 0.12s',
+                    '&:hover': { borderColor: C.accentLine, color: C.ink2 },
+                  }}
+                >
+                  {t.label}
+                </Box>
+              ))}
             </Box>
-          )}
+          </Box>
+
+          {/* Editor type */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.625rem', color: C.ink4, mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Keybindings</Box>
+            <Box sx={{ display: 'flex', gap: 0.75 }}>
+              {EDITOR_TYPES.map(t => (
+                <Tooltip key={t.value} title={t.soon ? 'Requires monaco-vim / monaco-emacs package' : ''} arrow>
+                  <Box
+                    component="button"
+                    onClick={() => !t.soon && updateSetting('editorType', t.value)}
+                    sx={{
+                      fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem',
+                      px: 1.25, py: 0.6, borderRadius: 1,
+                      cursor: t.soon ? 'not-allowed' : 'pointer',
+                      border: `1px solid ${settings.editorType === t.value && !t.soon ? C.accent : C.line2}`,
+                      bgcolor: settings.editorType === t.value && !t.soon ? C.accentSoft : 'transparent',
+                      color: t.soon ? C.ink4 : (settings.editorType === t.value ? C.accent : C.ink3),
+                      opacity: t.soon ? 0.5 : 1,
+                      transition: 'all 0.12s',
+                      display: 'flex', alignItems: 'center', gap: 0.5,
+                      '&:hover:not(:disabled)': { borderColor: t.soon ? C.line2 : C.accentLine },
+                    }}
+                  >
+                    {t.label}
+                    {t.soon && <Box component="span" sx={{ fontSize: '0.5rem', color: C.ink4 }}>soon</Box>}
+                  </Box>
+                </Tooltip>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Font size */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.625rem', color: C.ink4, mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Font Size — {settings.fontSize}px
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+              {[10, 11, 12, 13, 14, 15, 16, 18, 20].map(sz => (
+                <Box
+                  key={sz}
+                  component="button"
+                  onClick={() => updateSetting('fontSize', sz)}
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace', fontSize: '0.625rem',
+                    width: 30, height: 26, borderRadius: 1, cursor: 'pointer',
+                    border: `1px solid ${settings.fontSize === sz ? C.accent : C.line2}`,
+                    bgcolor: settings.fontSize === sz ? C.accentSoft : 'transparent',
+                    color: settings.fontSize === sz ? C.accent : C.ink3,
+                    transition: 'all 0.12s',
+                    '&:hover': { borderColor: C.accentLine, color: C.ink2 },
+                  }}
+                >
+                  {sz}
+                </Box>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Tab size */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.625rem', color: C.ink4, mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tab Size</Box>
+            <Box sx={{ display: 'flex', gap: 0.75 }}>
+              {[2, 4].map(ts => (
+                <Box
+                  key={ts}
+                  component="button"
+                  onClick={() => updateSetting('tabSize', ts)}
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem',
+                    px: 1.5, py: 0.6, borderRadius: 1, cursor: 'pointer',
+                    border: `1px solid ${settings.tabSize === ts ? C.accent : C.line2}`,
+                    bgcolor: settings.tabSize === ts ? C.accentSoft : 'transparent',
+                    color: settings.tabSize === ts ? C.accent : C.ink3,
+                    transition: 'all 0.12s',
+                    '&:hover': { borderColor: C.accentLine, color: C.ink2 },
+                  }}
+                >
+                  {ts} spaces
+                </Box>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Toggles */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 2 }}>
+            {[
+              { key: 'wordWrap', label: 'Word wrap', on: 'on', off: 'off', current: settings.wordWrap === 'on' },
+              { key: 'minimap', label: 'Minimap', on: true, off: false, current: settings.minimap },
+            ].map(({ key, label, on, off, current }) => (
+              <Box key={key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}>
+                <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', color: C.ink2 }}>{label}</Box>
+                <Box
+                  component="button"
+                  onClick={() => updateSetting(key, current ? off : on)}
+                  sx={{
+                    width: 40, height: 22, borderRadius: 11, cursor: 'pointer',
+                    bgcolor: current ? C.accent : C.line2, border: 'none',
+                    position: 'relative', transition: 'background 0.2s',
+                    '&::after': {
+                      content: '""', position: 'absolute',
+                      top: 3, left: current ? 21 : 3,
+                      width: 16, height: 16, borderRadius: '50%',
+                      bgcolor: 'white', transition: 'left 0.2s',
+                    },
+                  }}
+                />
+              </Box>
+            ))}
+          </Box>
+
+          {/* Reset + Done */}
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Box
               component="button"
-              onClick={querySyntaxHelper}
-              disabled={syntaxLoading}
+              onClick={() => { setSettings(DEFAULT_SETTINGS); saveSettings(DEFAULT_SETTINGS) }}
               sx={{
-                flex: 1, fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', fontWeight: 600,
-                color: C.bg0, bgcolor: syntaxLoading ? C.ink4 : C.accent,
-                border: 'none', borderRadius: 1, py: 1, cursor: syntaxLoading ? 'wait' : 'pointer',
-                transition: 'opacity 0.15s',
-                '&:hover:not(:disabled)': { opacity: 0.88 },
+                fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem',
+                color: C.ink3, bgcolor: 'transparent', border: `1px solid ${C.line2}`,
+                borderRadius: 1, px: 1.5, py: 0.75, cursor: 'pointer', flex: 1,
+                '&:hover': { borderColor: C.line3, color: C.ink2 },
               }}
             >
-              {syntaxLoading ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : 'Get Syntax'}
+              Reset defaults
             </Box>
             <Box
               component="button"
-              onClick={() => { setSyntaxOpen(false); setSyntaxQuery(''); setSyntaxResult('') }}
+              onClick={() => setSettingsOpen(false)}
               sx={{
                 fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', fontWeight: 600,
-                color: C.ink2, bgcolor: 'transparent', border: `1px solid ${C.line2}`,
-                borderRadius: 1, px: 2, cursor: 'pointer',
-                '&:hover': { borderColor: C.line3, color: C.ink1 },
+                color: C.bg0, bgcolor: C.accent, border: 'none',
+                borderRadius: 1, px: 2, py: 0.75, cursor: 'pointer', flex: 1,
+                '&:hover': { opacity: 0.88 },
               }}
             >
-              Close
+              Done
             </Box>
           </Box>
         </Box>
