@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { Box, Chip, Tooltip, IconButton } from '@mui/material'
 import Editor from '@monaco-editor/react'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
@@ -291,6 +291,7 @@ export default function CodePanel({ onApply }) {
     Object.fromEntries(Object.entries(FILES).map(([k, v]) => [k, v.content]))
   )
   const [todoLines, setTodoLines] = useState({})
+  const [todoIndex, setTodoIndex] = useState(0)
   const editorRef = useRef(null)
   const monacoRef = useRef(null)
   const decorationsRef = useRef(null)
@@ -302,6 +303,7 @@ export default function CodePanel({ onApply }) {
   const openTab = useCallback((path) => {
     setOpenTabs(prev => prev.includes(path) ? prev : [...prev, path])
     setActiveFile(path)
+    setTodoIndex(0)
   }, [])
 
   const closeTab = useCallback((path, e) => {
@@ -341,16 +343,42 @@ export default function CodePanel({ onApply }) {
     }
   }, [activeFile, fileContents, applied])
 
-  const jumpToTodo = useCallback(() => {
+  const allTodos = useMemo(() => {
+    const todos = Object.entries(todoLines).flatMap(([file, lines]) =>
+      lines.map((line, idx) => ({ file, line, globalIdx: 0 }))
+    ).sort((a, b) => {
+      const fileOrder = Object.keys(FILES)
+      return fileOrder.indexOf(a.file) - fileOrder.indexOf(b.file) ||
+             a.line - b.line
+    }).map((todo, idx) => ({ ...todo, globalIdx: idx }))
+    return todos
+  }, [todoLines])
+
+  const jumpToTodo = useCallback((direction = 'next') => {
     const editor = editorRef.current
-    if (!editor) return
-    const lines = todoLines[activeFile] || getTodoLines(fileContents[activeFile] || '')
-    if (lines.length > 0) {
-      editor.revealLineInCenter(lines[0])
-      editor.setPosition({ lineNumber: lines[0], column: 1 })
-      editor.focus()
+    if (!editor || allTodos.length === 0) return
+
+    let idx = todoIndex
+    if (direction === 'next') {
+      idx = (todoIndex + 1) % allTodos.length
+    } else if (direction === 'prev') {
+      idx = (todoIndex - 1 + allTodos.length) % allTodos.length
     }
-  }, [activeFile, todoLines, fileContents])
+    // 'current' keeps idx at todoIndex
+
+    const todo = allTodos[idx]
+    setTodoIndex(idx)
+    setActiveFile(todo.file)
+
+    // Jump to line in new file after state updates
+    setTimeout(() => {
+      if (editorRef.current) {
+        editorRef.current.revealLineInCenter(todo.line)
+        editorRef.current.setPosition({ lineNumber: todo.line, column: 1 })
+        editorRef.current.focus()
+      }
+    }, 0)
+  }, [allTodos, todoIndex])
 
   const openSearch = useCallback(() => {
     const editor = editorRef.current
@@ -369,8 +397,16 @@ export default function CodePanel({ onApply }) {
     monacoRef.current = monaco
     applyDecorations()
     // Jump to first TODO on mount
-    setTimeout(jumpToTodo, 100)
+    setTimeout(() => jumpToTodo('current'), 100)
   }
+
+  // Scan all files for TODOs on mount
+  useEffect(() => {
+    Object.entries(FILES).forEach(([path, file]) => {
+      const lines = getTodoLines(file.content)
+      setTodoLines(prev => ({ ...prev, [path]: lines }))
+    })
+  }, [])
 
   useEffect(() => {
     applyDecorations()
@@ -378,12 +414,13 @@ export default function CodePanel({ onApply }) {
 
   function handleApply() {
     setApplied(true)
+    setTodoIndex(0)
     if (decorationsRef.current) decorationsRef.current.clear()
     if (onApply) onApply()
   }
 
-  const activeTodoLines = todoLines[activeFile] || []
-  const hasTodo = activeTodoLines.length > 0 && !applied
+  const totalTodos = allTodos.length
+  const hasTodo = totalTodos > 0 && !applied
 
   const scrollTabs = (dir) => {
     if (tabsScrollRef.current) tabsScrollRef.current.scrollLeft += dir * 120
@@ -431,21 +468,46 @@ export default function CodePanel({ onApply }) {
             </IconButton>
           </Tooltip>
           {hasTodo && (
-            <Tooltip title="Jump to TODO comment" arrow>
-              <Box
-                component="button"
-                onClick={jumpToTodo}
-                sx={{
-                  fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem',
-                  color: C.warn, bgcolor: C.warnSoft, border: `1px solid ${C.warn}44`,
-                  borderRadius: 1, px: 1.25, py: 0.4, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 0.5,
-                  '&:hover': { bgcolor: 'rgba(251,191,36,0.18)' },
-                }}
-              >
-                ⚠ Jump to TODO
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Tooltip title="Previous TODO" arrow>
+                <Box
+                  component="button"
+                  onClick={() => jumpToTodo('prev')}
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem',
+                    color: C.warn, bgcolor: C.warnSoft, border: `1px solid ${C.warn}44`,
+                    borderRadius: 1, px: 0.75, py: 0.4, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 0.3,
+                    '&:hover': { bgcolor: 'rgba(251,191,36,0.18)' },
+                  }}
+                >
+                  ← Prev
+                </Box>
+              </Tooltip>
+              <Box sx={{
+                fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem',
+                color: C.warn, bgcolor: C.warnSoft, border: `1px solid ${C.warn}44`,
+                borderRadius: 1, px: 0.75, py: 0.4,
+                display: 'flex', alignItems: 'center', gap: 0.3,
+              }}>
+                {totalTodos > 0 ? todoIndex + 1 : 0}/{totalTodos}
               </Box>
-            </Tooltip>
+              <Tooltip title="Next TODO" arrow>
+                <Box
+                  component="button"
+                  onClick={() => jumpToTodo('next')}
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem',
+                    color: C.warn, bgcolor: C.warnSoft, border: `1px solid ${C.warn}44`,
+                    borderRadius: 1, px: 0.75, py: 0.4, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 0.3,
+                    '&:hover': { bgcolor: 'rgba(251,191,36,0.18)' },
+                  }}
+                >
+                  Next →
+                </Box>
+              </Tooltip>
+            </Box>
           )}
           {applied && (
             <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem', color: C.ok, display: 'flex', alignItems: 'center', gap: 0.5 }}>
