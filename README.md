@@ -2,7 +2,13 @@
 
 Distributed systems trainer. Real Docker infrastructure starts broken. You diagnose the failure, apply a fix, hit the next one.
 
-**[Live Demo](https://agdeva8.github.io/systemcraft/)** · [GitHub](https://github.com/agdeva8/systemcraft)
+**[Live Demo for UI/UX with stubbed data](https://agdeva8.github.io/systemcraft/)** · [GitHub](https://github.com/agdeva8/systemcraft)
+
+## Demo
+
+[![SystemCraft POC — URL Shortener Demo](https://img.youtube.com/vi/ny-z9ZQ9l4s/maxresdefault.jpg)](https://youtu.be/ny-z9ZQ9l4s)
+
+*POC demo: connection pool exhaustion (state0) → Redis cache layer (state1), 96% hit ratio*
 
 ---
 
