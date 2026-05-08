@@ -468,8 +468,8 @@ function buildNodes(traffic, metrics, activeOptional = []) {
   const m = metrics || {}
   const rps = m.rps ?? 0
   const appCpu = m.app_cpu
-  const dbActive = m.db_connections_active
-  const dbMax = 20
+  const dbActive = m.db_pool_used ?? m.db_connections_active
+  const dbMax = m.db_pool_size ?? 100
   const hitRatio = m.redis_hit_ratio
   const hasRedisMetrics = hitRatio != null || m.redis_memory_mb != null
   const redisExpected = activeOptional.some(s => s.id === 'redis')
@@ -511,8 +511,8 @@ function buildEdges(metrics, activeOptional = []) {
   const redisExpected = activeOptional.some(s => s.id === 'redis')
   const showRedis = hasRedisMetrics || redisExpected
   const redisPending = redisExpected && !hasRedisMetrics
-  const dbActive = m.db_connections_active
-  const dbMax = 20
+  const dbActive = m.db_pool_used ?? m.db_connections_active
+  const dbMax = m.db_pool_size ?? 100
   const dbStat = dbStatus(dbActive, dbMax)
   const dbEdgeColor = dbStat === 'crit' ? C.crit : dbStat === 'warn' ? C.warn : C.line3
 
@@ -536,7 +536,7 @@ function buildEdges(metrics, activeOptional = []) {
 function footerMessage(metrics) {
   if (!metrics) return { text: 'waiting for metrics…', color: C.ink4 }
   if (metrics.error) return { text: metrics.error, color: C.warn }
-  const dbPct = (metrics.db_connections_active ?? 0) / 20
+  const dbPct = (metrics.db_pool_used ?? metrics.db_connections_active ?? 0) / (metrics.db_pool_size ?? 100)
   if (dbPct >= 0.9) return { text: 'pool saturated', color: C.crit }
   if (dbPct >= 0.6) return { text: 'pool pressure building', color: C.warn }
   if (metrics.redis_hit_ratio != null && metrics.redis_hit_ratio >= 85) return { text: 'cache healthy', color: C.ok }

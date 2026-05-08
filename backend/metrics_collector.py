@@ -6,6 +6,8 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+_prev: dict = {}  # project → {total, errors, ts}
+
 
 async def _exec(args: list[str], timeout: float = 5.0) -> Optional[str]:
     try:
@@ -91,23 +93,42 @@ async def collect(project: str) -> dict:
 
     m = _parse_prometheus(raw)
     latency_s = m.get("http_request_latency_seconds", 0)
-    rps = int(m.get("http_requests_total", 0))
-    error_count = m.get("http_request_errors_total", 0)
-    total_count = m.get("http_requests_total", 1)
-    error_rate = round((error_count / max(total_count, 1)) * 100, 2) if total_count else 0
+
+    total_count = m.get("http_requests_total", 0) or 0
+    error_count = m.get("http_request_errors_total", 0) or 0
+
+    prev = _prev.get(project)
+    if prev is None:
+        rps = 0
+        error_rate = 0.0
+    else:
+        elapsed = (ts - prev["ts"]) / 1000.0
+        delta_total = max(0, total_count - prev["total"])
+        delta_errors = max(0, error_count - prev["errors"])
+        if elapsed > 0 and delta_total > 0:
+            rps = int(delta_total / elapsed)
+            error_rate = round((delta_errors / delta_total) * 100, 2)
+        else:
+            rps = 0
+            error_rate = 0.0
+    _prev[project] = {"total": total_count, "errors": error_count, "ts": ts}
 
     db_active = None
     db_waiting = None
     db_pool_size = None
+    db_pool_used = None
     raw_active = m.get("db_connections_active")
     raw_waiting = m.get("db_connections_waiting")
     raw_pool_size = m.get("db_pool_size")
+    raw_pool_used = m.get("db_pool_connections_used")
     if raw_active is not None:
         db_active = int(raw_active)
     if raw_waiting is not None:
         db_waiting = int(raw_waiting)
     if raw_pool_size is not None:
         db_pool_size = int(raw_pool_size)
+    if raw_pool_used is not None:
+        db_pool_used = int(raw_pool_used)
 
     hit_ratio_raw = m.get("cache_hit_ratio")
     redis_hit_ratio = round(hit_ratio_raw * 100, 1) if hit_ratio_raw is not None else None
@@ -122,6 +143,7 @@ async def collect(project: str) -> dict:
         "db_connections_active": db_active,
         "db_connections_waiting": db_waiting,
         "db_pool_size": db_pool_size,
+        "db_pool_used": db_pool_used,
         "redis_hit_ratio": redis_hit_ratio,
         "redis_memory_mb": redis_memory_mb,
         "app_cpu": app_cpu,

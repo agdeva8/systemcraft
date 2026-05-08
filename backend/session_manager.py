@@ -176,8 +176,23 @@ class SessionManager:
         logger.info("Transition complete (%dms): %s → %s", elapsed_ms, old_state, new_state)
         info["state"] = new_state
         info["running"] = True
+
+        # Kill k6 — port mapping changes after container swap, old process hits dead port
+        old_k6 = info.get("k6_process")
+        prev_display_vus = info.get("display_vus", 0)
+        if old_k6 and old_k6.returncode is None:
+            try:
+                old_k6.terminate()
+                await old_k6.wait()
+            except Exception:
+                pass
+        info["k6_process"] = None
         info["actual_vus"] = 0
         info["display_vus"] = 0
+
+        # Restart traffic if it was running before transition
+        if prev_display_vus > 0:
+            await self.start_traffic(session_id, prev_display_vus)
 
     def get_session_info(self, session_id: str) -> Optional[dict]:
         info = self._sessions.get(session_id)
@@ -231,12 +246,13 @@ class SessionManager:
 
         app_port = await self.get_container_port(session_id, "app", 8080)
         env = os.environ.copy()
+        env["K6_RPS"] = str(actual_vus * RPS_PER_VU)
         if app_port:
             env["TARGET_URL"] = f"http://localhost:{app_port}"
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                "k6", "run", "--vus", str(actual_vus), "--duration", "30m", str(script),
+                "k6", "run", str(script),
                 env=env,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,

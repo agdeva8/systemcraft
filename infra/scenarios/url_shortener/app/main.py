@@ -39,7 +39,7 @@ _bh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", da
 log.addHandler(_bh)
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/urlshortener")
-# TODO: DB_POOL_SIZE=18 with max_connections=20 — what happens when all 18 slots are taken?
+# TODO: DB_POOL_SIZE=95 with max_connections=100 — what happens when all 95 slots are taken?
 DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "18"))
 REDIS_URL = os.getenv("REDIS_URL", "")
 # TODO: Fixed TTL — all keys expire simultaneously. How would you stagger expiry?
@@ -125,7 +125,7 @@ def redirect(short_code: str):
 
     conn = None
     try:
-        pool_used = DB_POOL_SIZE - (pool._pool.__len__() if pool else 0)
+        pool_used = len(pool._used) if pool else 0
         conn = pool.getconn()
         cur = conn.cursor()
         cur.execute("SELECT long_url FROM urls WHERE short_code = %s", (short_code,))
@@ -152,7 +152,7 @@ def redirect(short_code: str):
     except Exception as e:
         request_errors += 1
         log.error("GET /r/%s  FAILED: %s  pool=%d/%d", short_code, e,
-                  DB_POOL_SIZE - (pool._pool.__len__() if pool else 0), DB_POOL_SIZE)
+                  len(pool._used) if pool else 0, DB_POOL_SIZE)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         elapsed = time.time() - t0
@@ -164,7 +164,7 @@ def redirect(short_code: str):
             avg_ms = (latency_sum / latency_count * 1000) if latency_count > 0 else 0
             log.info("req #%d  avg=%.1fms  hits=%d  misses=%d  errs=%d  pool=%d/%d",
                      request_count, avg_ms, cache_hits, cache_misses, request_errors,
-                     DB_POOL_SIZE - (pool._pool.__len__() if pool else 0), DB_POOL_SIZE)
+                     len(pool._used) if pool else 0, DB_POOL_SIZE)
 
 
 @app.post("/shorten")
@@ -192,7 +192,7 @@ def shorten(body: ShortenBody):
 @app.get("/metrics", response_class=PlainTextResponse)
 def metrics():
     avg_latency = (latency_sum / latency_count) if latency_count > 0 else 0
-    pool_used = DB_POOL_SIZE - (pool._pool.__len__() if pool else 0)
+    pool_used = len(pool._used) if pool else 0
 
     db_active = 0
     db_waiting = 0

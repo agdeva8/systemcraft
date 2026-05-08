@@ -66,9 +66,13 @@ function useTerminalWs(sessionId, service, containerRef, active) {
       term.write(data)
     }
 
-    ws.onclose = () => {
+    ws.onclose = (e) => {
       if (wsRef.current !== ws || closingRef.current) return
-      if (retriesRef.current < 15) {
+      if (e.code === 4004) {
+        term.writeln('\x1b[31m--- session ended ---\x1b[0m')
+        return
+      }
+      if (retriesRef.current < 20) {
         retriesRef.current++
         if (retriesRef.current === 1) term.writeln('\x1b[90m--- reconnecting… ---\x1b[0m')
         retryRef.current = setTimeout(connectWs, 2000)

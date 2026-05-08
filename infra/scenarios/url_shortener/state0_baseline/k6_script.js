@@ -1,5 +1,5 @@
 import http from 'k6/http';
-import { check, sleep } from 'k6';
+import { check } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
 import crypto from 'k6/crypto';
 
@@ -7,6 +7,9 @@ const errorRate = new Rate('errors');
 const dbWaitTime = new Trend('db_wait_time');
 
 const BASE_URL = __ENV.TARGET_URL || 'http://localhost:8080';
+const TARGET_RPS = parseInt(__ENV.K6_RPS || '500');
+const PRE_ALLOC_VUS = Math.max(50, Math.ceil(TARGET_RPS * 0.1));
+const MAX_VUS = Math.max(500, TARGET_RPS * 3);
 
 // Must match init.sql: substring(md5(N::text), 1, 6) for N in 1..10000
 const SHORT_CODES = Array.from({ length: 1000 }, (_, i) =>
@@ -14,11 +17,16 @@ const SHORT_CODES = Array.from({ length: 1000 }, (_, i) =>
 );
 
 export const options = {
-  stages: [
-    { duration: '1m', target: 100 },
-    { duration: '8m', target: 100 },
-    { duration: '1m', target: 0 },
-  ],
+  scenarios: {
+    load: {
+      executor: 'constant-arrival-rate',
+      rate: TARGET_RPS,
+      timeUnit: '1s',
+      duration: '2h',
+      preAllocatedVUs: PRE_ALLOC_VUS,
+      maxVUs: MAX_VUS,
+    },
+  },
   thresholds: {
     http_req_failed: ['rate<0.02'],
     http_req_duration: ['p(95)<500'],
@@ -34,7 +42,6 @@ export default function () {
     const res = http.get(`${BASE_URL}/r/${code}`);
     const ok = check(res, {
       'status 200 or 404': (r) => r.status === 200 || r.status === 404,
-      'response time < 500ms': (r) => r.timings.duration < 500,
     });
     errorRate.add(!ok);
     if (res.headers['X-Db-Wait-Ms']) {
@@ -46,6 +53,4 @@ export default function () {
     const ok = check(res, { 'status 200': (r) => r.status === 200 });
     errorRate.add(!ok);
   }
-
-  sleep(0.1);
 }

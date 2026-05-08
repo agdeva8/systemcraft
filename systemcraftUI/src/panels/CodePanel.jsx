@@ -661,42 +661,45 @@ export default function CodePanel({ onApply, onContextChange, onAiOpen }) {
         </Box>
 
         {/* Apply bar */}
-        <Box sx={{
-          px: 2, py: 1.25,
-          borderTop: `1px solid ${C.line1}`,
-          bgcolor: applied ? C.okSoft : C.bg1,
-          flexShrink: 0,
-          display: 'flex', alignItems: 'center', gap: 2,
-          transition: 'background 0.3s',
-        }}>
-          <Box sx={{ flex: 1 }}>
-            <Box sx={{ fontSize: '0.875rem', fontWeight: 500, color: applied ? C.ok : C.ink2, lineHeight: 1.4 }}>
-              {applied
-                ? '✓ Config applied — container hot-reloading. Verify with TTL url:abc123 in the Redis terminal.'
-                : hasTodo
-                  ? 'Find the ⚠ TODO in the file. Edit inline, then click Apply to hot-reload the container.'
-                  : 'Edit the file above, then click Apply to push changes into the container.'}
-            </Box>
-          </Box>
-          <Box
-            component="button"
-            onClick={handleApply}
-            disabled={applied}
-            sx={{
-              fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8125rem', fontWeight: 600,
-              color: applied ? C.ok : C.bg0,
-              bgcolor: applied ? 'transparent' : C.accent,
-              border: `1px solid ${applied ? C.ok + '55' : C.accent}`,
-              borderRadius: 1, px: 2.5, py: 1,
-              cursor: applied ? 'default' : 'pointer',
+        {(() => {
+          const svc = activeFile.startsWith('postgres/') ? 'postgres'
+                    : activeFile.startsWith('redis/') ? 'redis'
+                    : 'app'
+          return (
+            <Box sx={{
+              px: 2, py: 0.875,
+              borderTop: `1px solid ${C.line1}`,
+              bgcolor: applied ? C.okSoft : C.bg1,
               flexShrink: 0,
-              transition: 'all 0.15s',
-              '&:hover:not(:disabled)': { opacity: 0.88 },
-            }}
-          >
-            {applied ? '✓ Applied' : 'Apply Changes →'}
-          </Box>
-        </Box>
+              display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1.5,
+              transition: 'background 0.3s',
+            }}>
+              {applied && (
+                <Box sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.5625rem', color: C.ok, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  ✓ pushed to {svc} · reloading
+                </Box>
+              )}
+              <Box
+                component="button"
+                onClick={handleApply}
+                disabled={applied}
+                sx={{
+                  fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', fontWeight: 600,
+                  color: applied ? C.ok : C.bg0,
+                  bgcolor: applied ? 'transparent' : C.accent,
+                  border: `1px solid ${applied ? C.ok + '55' : C.accent}`,
+                  borderRadius: 1, px: 2, py: 0.75,
+                  cursor: applied ? 'default' : 'pointer',
+                  flexShrink: 0,
+                  transition: 'all 0.15s',
+                  '&:hover:not(:disabled)': { opacity: 0.88 },
+                }}
+              >
+                {applied ? '✓ Applied' : `▶ Reload ${svc}`}
+              </Box>
+            </Box>
+          )
+        })()}
       </Box>
 
       {/* Editor settings modal */}

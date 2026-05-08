@@ -244,7 +244,10 @@ export default function Session({ view, onBack, onFinish }) {
     if (!sessionId) return
     const es = metricsEventSource(sessionId)
     es.onmessage = (e) => {
-      try { setMetrics(JSON.parse(e.data)) } catch {}
+      try {
+        const data = JSON.parse(e.data)
+        if (!data.error) setMetrics(data)
+      } catch {}
     }
     return () => es.close()
   }, [sessionId])
@@ -254,7 +257,7 @@ export default function Session({ view, onBack, onFinish }) {
     if (!metrics) return
     const bad = {}
     if (metrics.latency_p99 >= 400) bad.p99 = true
-    if (metrics.db_connections_active >= 18) bad.dbConn = true
+    if ((metrics.db_pool_used ?? metrics.db_connections_active ?? 0) >= 18) bad.dbConn = true
     if (Object.keys(bad).length) {
       setFlashing(bad)
       const t = setTimeout(() => setFlashing({}), 800)
@@ -413,7 +416,7 @@ export default function Session({ view, onBack, onFinish }) {
               <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.5625rem', fontWeight: 700, color: C.ink3, letterSpacing: '0.08em', textTransform: 'uppercase' }}>↑ Load — drag to stress test</Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.875rem', fontWeight: 700, color: trafficRunning ? (traffic > 7000 ? C.crit : traffic > 4000 ? C.warn : C.ink1) : C.ink3 }}>
-                  {traffic.toLocaleString()} <Box component="span" sx={{ fontSize: '0.5rem', color: C.ink3 }}>VUs</Box>
+                  {Math.round(traffic * 1.5).toLocaleString()} <Box component="span" sx={{ fontSize: '0.5rem', color: C.ink3 }}>req/s</Box>
                 </Box>
                 <Box
                   component="button"
@@ -459,9 +462,9 @@ export default function Session({ view, onBack, onFinish }) {
             value={metrics ? `${metrics.error_rate ?? 0}%` : '…'}
             raw={metrics?.error_rate ?? 0} metricKey="errorRate" />
           <MetricCell label="DB conn"
-            value={metrics ? `${metrics.db_connections_active ?? 0}/${metrics.db_pool_size ?? 20}` : '…'}
-            raw={metrics?.db_connections_active ?? 0} metricKey="dbConn"
-            unit={metrics ? `${Math.round((metrics.db_connections_active ?? 0) / (metrics.db_pool_size ?? 20) * 100)}% pool used` : ''}
+            value={metrics ? `${metrics.db_pool_used ?? metrics.db_connections_active ?? 0}/${metrics.db_pool_size ?? 100}` : '…'}
+            raw={metrics?.db_pool_used ?? metrics?.db_connections_active ?? 0} metricKey="dbConn"
+            unit={metrics ? `${Math.round((metrics.db_pool_used ?? metrics.db_connections_active ?? 0) / (metrics.db_pool_size ?? 100) * 100)}% pool used` : ''}
             flashing={flashing.dbConn} />
           <MetricCell label="Cache hit"
             value={metrics?.redis_hit_ratio != null ? `${metrics.redis_hit_ratio}%` : '—'}

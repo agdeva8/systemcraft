@@ -152,16 +152,20 @@ async def metrics_stream(session_id: str):
             return
 
         while True:
-            info = session_manager.get_session_info(session_id)
-            if not info:
-                yield f"data: {json.dumps({'error': 'session destroyed'})}\n\n"
-                return
-            project = info.get("project_name", "")
-            if project:
-                data = await mc.collect(project)
-            else:
-                data = {"error": "no project", "ts": int(time.time() * 1000)}
-            yield f"data: {json.dumps(data)}\n\n"
+            try:
+                info = session_manager.get_session_info(session_id)
+                if not info:
+                    yield f"data: {json.dumps({'error': 'session destroyed'})}\n\n"
+                    return
+                project = info.get("project_name", "")
+                if project:
+                    data = await mc.collect(project)
+                else:
+                    data = {"error": "no project", "ts": int(time.time() * 1000)}
+                yield f"data: {json.dumps(data)}\n\n"
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).warning("metrics stream error: %s", exc)
             await asyncio.sleep(1)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -346,20 +350,37 @@ async def terminal_ws(websocket: WebSocket, session_id: str, service: str):
 
     loop = asyncio.get_event_loop()
 
-    try:
-        exec_id = await loop.run_in_executor(
-            None,
-            lambda: docker_client.exec_create(
-                container_name, shell_cmd, tty=True, stdin=True,
-            )["Id"],
-        )
-        sock = await loop.run_in_executor(
-            None,
-            lambda: docker_client.exec_start(exec_id, socket=True, tty=True),
-        )
-        raw_sock = sock._sock
-    except Exception as e:
-        await websocket.send_bytes(f"Error: {e}\r\n".encode())
+    raw_sock = None
+    deadline = time.time() + 30
+    notified = False
+    while time.time() < deadline:
+        try:
+            exec_id = await loop.run_in_executor(
+                None,
+                lambda: docker_client.exec_create(
+                    container_name, shell_cmd, tty=True, stdin=True,
+                )["Id"],
+            )
+            sock = await loop.run_in_executor(
+                None,
+                lambda: docker_client.exec_start(exec_id, socket=True, tty=True),
+            )
+            raw_sock = sock._sock
+            break
+        except Exception as e:
+            msg = str(e)
+            if "is not running" in msg or "409" in msg or "No such container" in msg:
+                if not notified:
+                    await websocket.send_bytes(b"\x1b[90mwaiting for container\x1b[0m\r\n")
+                    notified = True
+                await asyncio.sleep(1.5)
+            else:
+                await websocket.send_bytes(f"Error: {e}\r\n".encode())
+                await websocket.close(code=4005)
+                return
+
+    if raw_sock is None:
+        await websocket.send_bytes(b"Container did not start in time\r\n")
         await websocket.close(code=4005)
         return
 
@@ -411,13 +432,28 @@ async def apply_config(session_id: str, body: ConfigBody):
 
     safe_name = body.filename.replace("/", "_").replace("..", "")
     tmp_path = f"/tmp/sc_{session_id[:8]}_{safe_name}"
-    container = f"{project}-app-1"
+
+    prefix = body.filename.split("/")[0]
+    if prefix == "postgres":
+        container = f"{project}-postgres-1"
+        dest = "/var/lib/postgresql/data/" + body.filename.split("/", 1)[-1]
+        reload_cmd = ["docker", "exec", container, "psql", "-U", "postgres", "-c", "SELECT pg_reload_conf();"]
+        reloaded_service = "postgres"
+    elif prefix == "redis":
+        container = f"{project}-redis-1"
+        dest = "/etc/redis/" + body.filename.split("/", 1)[-1]
+        reload_cmd = ["docker", "exec", container, "redis-cli", "CONFIG", "REWRITE"]
+        reloaded_service = "redis"
+    else:
+        container = f"{project}-app-1"
+        dest = f"/app/{body.filename}"
+        reload_cmd = ["docker", "exec", container, "kill", "-HUP", "1"]
+        reloaded_service = "app"
 
     try:
         with open(tmp_path, "w") as f:
             f.write(body.content)
 
-        dest = f"/app/{body.filename}"
         cp_proc = await asyncio.create_subprocess_exec(
             "docker", "cp", tmp_path, f"{container}:{dest}",
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
@@ -427,7 +463,7 @@ async def apply_config(session_id: str, body: ConfigBody):
             return {"ok": False, "error": "container not running or copy failed"}
 
         reload_proc = await asyncio.create_subprocess_exec(
-            "docker", "exec", container, "kill", "-HUP", "1",
+            *reload_cmd,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         )
         await reload_proc.communicate()
@@ -437,7 +473,7 @@ async def apply_config(session_id: str, body: ConfigBody):
         except Exception:
             pass
 
-    return {"ok": True, "reloaded_service": "app", "reload_ms": int((time.time() - t0) * 1000)}
+    return {"ok": True, "reloaded_service": reloaded_service, "reload_ms": int((time.time() - t0) * 1000)}
 
 
 # ── Codefile ───────────────────────────────────────────────────────────────────
